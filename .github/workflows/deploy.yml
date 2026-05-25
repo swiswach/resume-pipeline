@@ -10,16 +10,27 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     
+    permissions:
+      id-token: write
+      contents: read
+    
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
+      uses: aws-actions/configure-aws-credentials@v4
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: ${{ secrets.AWS_REGION }}
     
-    - name: Deploy to S3
+    - name: Deploy specific files to S3
       run: |
-        aws s3 sync . s3://cloud-challenge01 --delete --exclude ".git/*" --exclude ".github/*"
+        # Only upload files you want to update - preserves existing index.html
+        aws s3 cp resume.docx s3://cloud-challenge01/ || echo "resume.docx not found, skipping"
+        
+        # Add other specific files as needed:
+        # aws s3 cp style.css s3://cloud-challenge01/
+        # aws s3 cp script.js s3://cloud-challenge01/
+        
+        # Optionally trigger Lambda to regenerate HTML
+        aws lambda invoke --function-name word-to-html-converter response.json
