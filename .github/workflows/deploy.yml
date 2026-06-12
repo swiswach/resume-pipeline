@@ -23,12 +23,28 @@ jobs:
         role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
         aws-region: ${{ secrets.AWS_REGION }}
     
+    - name: Update Lambda function
+      run: |
+        cd lambda
+        zip function.zip *.py
+        aws lambda update-function-code \
+          --function-name word-to-html-converter \
+          --zip-file fileb://function.zip
+    
     - name: Deploy specific files to S3
       run: |
         # Only upload files you want to update - preserves existing index.html
         aws s3 cp resume.docx s3://cloud-challenge01/ || echo "resume.docx not found, skipping"
         
         # Add other specific files as needed:
+        # aws s3 cp style.css s3://cloud-challenge01/
+        # aws s3 cp script.js s3://cloud-challenge01/
+        
+    - name: Trigger Lambda conversion
+      run: |
+        # Optionally trigger Lambda to regenerate HTML
+        aws lambda invoke --function-name word-to-html-converter response.json
+
         # aws s3 cp style.css s3://cloud-challenge01/
         # aws s3 cp script.js s3://cloud-challenge01/
         
