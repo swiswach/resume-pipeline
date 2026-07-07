@@ -1,32 +1,31 @@
 from docx import Document
+import re
 
 def extract_resume_content():
-    # Read the resume
+    # Read the Word document
     doc = Document('resume.docx')
     
-    # Extract all text content
-    resume_text = []
+    # Extract all paragraphs
+    content = []
     for paragraph in doc.paragraphs:
         if paragraph.text.strip():
-            resume_text.append(paragraph.text.strip())
+            content.append(f"<p>{paragraph.text}</p>")
     
-    # Convert to HTML format (preserve line breaks)
-    html_resume_text = '<br>\n'.join(resume_text)
+    # Join all content
+    resume_html = '\n'.join(content)
     
-    # Update the HTML file
-    update_html_with_resume(html_resume_text)
+    # Read the current index.html
+    with open('index.html', 'r', encoding='utf-8') as file:
+        html_content = file.read()
     
-    print("Resume content extracted and updated in index.html")
+    # Replace the placeholder with actual resume content
+    updated_html = html_content.replace('{{RESUME_CONTENT}}', resume_html)
+    
+    # Write back to index.html
+    with open('index.html', 'w', encoding='utf-8') as file:
+        file.write(updated_html)
+    
+    print("Resume content extracted and inserted into index.html")
 
-def update_html_with_resume(resume_content):
-    with open('index.html', 'r') as f:
-        html = f.read()
-    
-    # Replace the {{RESUME_CONTENT}} placeholder
-    new_html = html.replace('{{RESUME_CONTENT}}', resume_content)
-    
-    with open('index.html', 'w') as f:
-        f.write(new_html)
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     extract_resume_content()
