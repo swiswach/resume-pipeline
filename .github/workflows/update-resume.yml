@@ -1,8 +1,8 @@
 name: Update Resume
 on:
   push:
-    branches: [ main ]
-    paths: [ 'resume.docx' ]
+    branches: [main]
+    paths: ['resume.docx']
 
 jobs:
   update-resume:
@@ -32,7 +32,3 @@ jobs:
     - name: Deploy to S3
       run: |
         aws s3 sync . s3://cloud-challenge01 --exclude ".git/*" --exclude ".github/*" --exclude "*.docx"
-        
-    - name: Invalidate CloudFront
-      run: |
-        aws cloudfront create-invalidation --distribution-id E1234567890123 --paths "/*"
