@@ -1,0 +1,26 @@
+from docx import Document
+
+def extract_resume_text():
+    doc = Document('resume.docx')
+    text_content = []
+    
+    for paragraph in doc.paragraphs:
+        text = paragraph.text.strip()
+        if text:
+            text_content.append(f'<p>{text}</p>')
+    
+    return '\n'.join(text_content)
+
+def update_html():
+    resume_content = extract_resume_text()
+    
+    with open('index.html', 'r') as file:
+        html_content = file.read()
+    
+    updated_html = html_content.replace('{{RESUME_CONTENT}}', resume_content)
+    
+    with open('index.html', 'w') as file:
+        file.write(updated_html)
+
+if __name__ == "__main__":
+    update_html()
