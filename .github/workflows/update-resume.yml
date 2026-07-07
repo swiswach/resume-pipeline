@@ -1,42 +1,27 @@
-name: Deploy Resume to S3
+from docx import Document
 
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+def extract_resume_text():
+    doc = Document('resume.docx')
+    text_content = []
+    
+    for paragraph in doc.paragraphs:
+        text = paragraph.text.strip()
+        if text:
+            # Just wrap each paragraph in <p> tags - no formatting decisions
+            text_content.append(f'<p>{text}</p>')
+    
+    return '\n'.join(text_content)
 
-jobs:
-  update-resume:
-    runs-on: ubuntu-latest
+def update_html():
+    resume_content = extract_resume_text()
     
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    with open('index.html', 'r') as file:
+        html_content = file.read()
     
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
+    updated_html = html_content.replace('{{RESUME_CONTENT}}', resume_content)
     
-    - name: Install dependencies
-      run: |
-        pip install python-docx
-    
-    - name: Extract resume content
-      run: |
-        python scripts/extract_resume.py
-    
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1
-    
-    - name: Deploy to S3
-      run: |
-        aws s3 sync . s3://cloud-challenge01 --exclude "*.git/*" --exclude "scripts/*" --exclude "resume.docx" --exclude "*.yml"
-    
-    - name: Invalidate CloudFront
-      run: |
-        aws cloudfront create-invalidation --distribution-id E1D217O0NBRUC2 --paths "/*"
+    with open('index.html', 'w') as file:
+        file.write(updated_html)
+
+if __name__ == "__main__":
+    update_html()
