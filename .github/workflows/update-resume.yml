@@ -1,27 +1,33 @@
-from docx import Document
+name: Update Resume
+on:
+  push:
+    branches: [ main ]
+    paths: [ 'resume.docx' ]
 
-def extract_resume_text():
-    doc = Document('resume.docx')
-    text_content = []
+jobs:
+  update-resume:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
     
-    for paragraph in doc.paragraphs:
-        text = paragraph.text.strip()
-        if text:
-            # Just wrap each paragraph in <p> tags - no formatting decisions
-            text_content.append(f'<p>{text}</p>')
-    
-    return '\n'.join(text_content)
-
-def update_html():
-    resume_content = extract_resume_text()
-    
-    with open('index.html', 'r') as file:
-        html_content = file.read()
-    
-    updated_html = html_content.replace('{{RESUME_CONTENT}}', resume_content)
-    
-    with open('index.html', 'w') as file:
-        file.write(updated_html)
-
-if __name__ == "__main__":
-    update_html()
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+        
+    - name: Install dependencies
+      run: |
+        pip install python-docx
+        
+    - name: Update resume content
+      run: python update-resume.py
+      
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+        
+    - name: Deploy to S3
+      run:
