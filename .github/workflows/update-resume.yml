@@ -17,11 +17,170 @@ jobs:
         
     - name: Install dependencies
       run: |
-        pip install python-docx
+        pip install python-docx mammoth beautifulsoup4
         
-    - name: Update resume content
-      run: python update-resume.py
-      
+    - name: Convert resume to HTML with your CSS
+      run: |
+        python -c "
+        import mammoth
+        import os
+        
+        # Convert .docx to HTML
+        with open('resume.docx', 'rb') as docx_file:
+            result = mammoth.convert_to_html(docx_file)
+            html_content = result.value
+        
+        # Your exact CSS styling
+        css_styles = '''<html>
+        <head>
+        <meta http-equiv=Content-Type content=\"text/html; charset=windows-1252\">
+        <meta name=Generator content=\"Microsoft Word 15 (filtered)\">
+        <style>
+        <!--
+         /* Font Definitions */
+         @font-face
+         {font-family:Wingdings;
+         panose-1:5 0 0 0 0 0 0 0 0 0;}
+        @font-face
+         {font-family:\"MS Mincho\";
+         panose-1:2 2 6 9 4 2 5 8 3 4;}
+        @font-face
+         {font-family:\"Cambria Math\";
+         panose-1:2 4 5 3 5 4 6 3 2 4;}
+        @font-face
+         {font-family:Calibri;
+         panose-1:2 15 5 2 2 2 4 3 2 4;}
+        @font-face
+         {font-family:Verdana;
+         panose-1:2 11 6 4 3 5 4 4 2 4;}
+        @font-face
+         {font-family:\"Wingdings 2\";
+         panose-1:5 2 1 2 1 5 7 7 7 7;}
+        @font-face
+         {font-family:OpenSymbol;
+         panose-1:5 1 0 0 0 0 0 0 0 0;}
+        @font-face
+         {font-family:\"Segoe UI\";
+         panose-1:2 11 5 2 4 2 4 2 2 3;}
+        @font-face
+         {font-family:\"Liberation Sans\";
+         panose-1:2 11 6 4 2 2 2 2 2 4;}
+        @font-face
+         {font-family:\"Microsoft YaHei\";
+         panose-1:2 11 5 3 2 2 4 2 2 4;}
+        @font-face
+         {font-family:\"Lucida Sans\";
+         panose-1:2 11 6 2 3 5 4 2 2 4;}
+        @font-face
+         {font-family:Tahoma;
+         panose-1:2 11 6 4 3 5 4 4 2 4;}
+        @font-face
+         {font-family:Georgia;
+         panose-1:2 4 5 2 5 4 5 2 3 3;}
+        @font-face
+         {font-family:\"\\@MS Mincho\";
+         panose-1:2 2 6 9 4 2 5 8 3 4;}
+        @font-face
+         {font-family:\"\\@Microsoft YaHei\";}
+         /* Style Definitions */
+         p.MsoNormal, li.MsoNormal, div.MsoNormal
+         {margin:0in;
+         font-size:11.0pt;
+         font-family:\"Calibri\",sans-serif;}
+        a:link, span.MsoHyperlink
+         {color:#0563C1;
+         text-decoration:underline;}
+        p.MsoPlainText, li.MsoPlainText, div.MsoPlainText
+         {mso-style-link:\"Plain Text Char\";
+         margin:0in;
+         font-size:10.0pt;
+         font-family:\"Courier New\";}
+        p.MsoListParagraph, li.MsoListParagraph, div.MsoListParagraph
+         {margin-top:0in;
+         margin-right:0in;
+         margin-bottom:0in;
+         margin-left:.5in;
+         font-size:11.0pt;
+         font-family:\"Calibri\",sans-serif;}
+        p.MsoListParagraphCxSpFirst, li.MsoListParagraphCxSpFirst, div.MsoListParagraphCxSpFirst
+         {margin-top:0in;
+         margin-right:0in;
+         margin-bottom:0in;
+         margin-left:.5in;
+         font-size:11.0pt;
+         font-family:\"Calibri\",sans-serif;}
+        p.MsoListParagraphCxSpMiddle, li.MsoListParagraphCxSpMiddle, div.MsoListParagraphCxSpMiddle
+         {margin-top:0in;
+         margin-right:0in;
+         margin-bottom:0in;
+         margin-left:.5in;
+         font-size:11.0pt;
+         font-family:\"Calibri\",sans-serif;}
+        p.MsoListParagraphCxSpLast, li.MsoListParagraphCxSpLast, div.MsoListParagraphCxSpLast
+         {margin-top:0in;
+         margin-right:0in;
+         margin-bottom:0in;
+         margin-left:.5in;
+         font-size:11.0pt;
+         font-family:\"Calibri\",sans-serif;}
+        span.PlainTextChar
+         {mso-style-name:\"Plain Text Char\";
+         mso-style-link:\"Plain Text\";
+         font-family:\"Courier New\";}
+        .MsoChpDefault
+         {font-family:\"Calibri\",sans-serif;}
+        @page WordSection1
+         {size:8.5in 11.0in;
+         margin:.6in 49.5pt .6in .8in;}
+        div.WordSection1
+         {page:WordSection1;}
+         /* List Definitions */
+         ol
+         {margin-bottom:0in;}
+        ul
+         {margin-bottom:0in;}
+
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px;
+            background: #f8f9fa;
+            color: #333;
+        }
+
+        h1, h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+
+        .resume-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        -->
+        </style>
+        </head>
+
+        <body bgcolor=white lang=EN-US link=\"#0563C1\" vlink=\"#954F72\" style='word-wrap: break-word'>
+        <div class=\"resume-container\">'''
+        
+        # Create complete HTML with your styling
+        full_html = css_styles + html_content + '''
+        </div>
+        </body>
+        </html>'''
+        
+        # Save as index.html
+        with open('index.html', 'w', encoding='utf-8') as f:
+            f.write(full_html)
+        
+        print('Resume converted with your custom CSS styling!')
+        "
+        
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
