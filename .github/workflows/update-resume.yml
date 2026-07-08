@@ -10,6 +10,16 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
+    - name: Check if resume.docx exists
+      run: |
+        ls -la
+        if [ -f "resume.docx" ]; then
+          echo "✅ resume.docx found"
+        else
+          echo "❌ resume.docx NOT found"
+          exit 1
+        fi
+    
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
@@ -19,127 +29,36 @@ jobs:
       run: |
         pip install python-docx mammoth beautifulsoup4
         
-    - name: Convert resume to HTML with your CSS
+    - name: Convert resume to HTML with debugging
       run: |
-        cat > convert_resume.py << 'EOF'
+        python -c "
         import mammoth
         import os
         
-        # Convert .docx to HTML
-        with open('resume.docx', 'rb') as docx_file:
-            result = mammoth.convert_to_html(docx_file)
-            html_content = result.value
+        print('Starting conversion...')
         
-        # Your exact CSS styling
-        css_styles = '''<html>
+        # Check if file exists
+        if not os.path.exists('resume.docx'):
+            print('ERROR: resume.docx not found!')
+            exit(1)
+        
+        print('Converting .docx to HTML...')
+        try:
+            with open('resume.docx', 'rb') as docx_file:
+                result = mammoth.convert_to_html(docx_file)
+                html_content = result.value
+                print(f'Conversion successful! HTML length: {len(html_content)}')
+        except Exception as e:
+            print(f'ERROR during conversion: {e}')
+            exit(1)
+        
+        # Simple CSS for now
+        css_styles = '''<!DOCTYPE html>
+        <html>
         <head>
-        <meta http-equiv=Content-Type content="text/html; charset=windows-1252">
-        <meta name=Generator content="Microsoft Word 15 (filtered)">
+        <meta charset=\"utf-8\">
+        <title>Resume</title>
         <style>
-        <!--
-        /* Font Definitions */
-         @font-face
-         {font-family:Wingdings;
-         panose-1:5 0 0 0 0 0 0 0 0 0;}
-        @font-face
-         {font-family:"MS Mincho";
-         panose-1:2 2 6 9 4 2 5 8 3 4;}
-        @font-face
-         {font-family:"Cambria Math";
-         panose-1:2 4 5 3 5 4 6 3 2 4;}
-        @font-face
-         {font-family:Calibri;
-         panose-1:2 15 5 2 2 2 4 3 2 4;}
-        @font-face
-         {font-family:Verdana;
-         panose-1:2 11 6 4 3 5 4 4 2 4;}
-        @font-face
-         {font-family:"Wingdings 2";
-         panose-1:5 2 1 2 1 5 7 7 7 7;}
-        @font-face
-         {font-family:OpenSymbol;
-         panose-1:5 1 0 0 0 0 0 0 0 0;}
-        @font-face
-         {font-family:"Segoe UI";
-         panose-1:2 11 5 2 4 2 4 2 2 3;}
-        @font-face
-         {font-family:"Liberation Sans";
-         panose-1:2 11 6 4 2 2 2 2 2 4;}
-        @font-face
-         {font-family:"Microsoft YaHei";
-         panose-1:2 11 5 3 2 2 4 2 2 4;}
-        @font-face
-         {font-family:"Lucida Sans";
-         panose-1:2 11 6 2 3 5 4 2 2 4;}
-        @font-face
-         {font-family:Tahoma;
-         panose-1:2 11 6 4 3 5 4 4 2 4;}
-        @font-face
-         {font-family:Georgia;
-         panose-1:2 4 5 2 5 4 5 2 3 3;}
-        @font-face
-         {font-family:"\\@MS Mincho";
-         panose-1:2 2 6 9 4 2 5 8 3 4;}
-        @font-face
-         {font-family:"\\@Microsoft YaHei";}
-         /* Style Definitions */
-         p.MsoNormal, li.MsoNormal, div.MsoNormal
-         {margin:0in;
-         font-size:11.0pt;
-         font-family:"Calibri",sans-serif;}
-        a:link, span.MsoHyperlink
-         {color:#0563C1;
-         text-decoration:underline;}
-        p.MsoPlainText, li.MsoPlainText, div.MsoPlainText
-         {mso-style-link:"Plain Text Char";
-         margin:0in;
-         font-size:10.0pt;
-         font-family:"Courier New";}
-        p.MsoListParagraph, li.MsoListParagraph, div.MsoListParagraph
-         {margin-top:0in;
-         margin-right:0in;
-         margin-bottom:0in;
-         margin-left:.5in;
-         font-size:11.0pt;
-         font-family:"Calibri",sans-serif;}
-        p.MsoListParagraphCxSpFirst, li.MsoListParagraphCxSpFirst, div.MsoListParagraphCxSpFirst
-         {margin-top:0in;
-         margin-right:0in;
-         margin-bottom:0in;
-         margin-left:.5in;
-         font-size:11.0pt;
-         font-family:"Calibri",sans-serif;}
-        p.MsoListParagraphCxSpMiddle, li.MsoListParagraphCxSpMiddle, div.MsoListParagraphCxSpMiddle
-         {margin-top:0in;
-         margin-right:0in;
-         margin-bottom:0in;
-         margin-left:.5in;
-         font-size:11.0pt;
-         font-family:"Calibri",sans-serif;}
-        p.MsoListParagraphCxSpLast, li.MsoListParagraphCxSpLast, div.MsoListParagraphCxSpLast
-         {margin-top:0in;
-         margin-right:0in;
-         margin-bottom:0in;
-         margin-left:.5in;
-         font-size:11.0pt;
-         font-family:"Calibri",sans-serif;}
-        span.PlainTextChar
-         {mso-style-name:"Plain Text Char";
-         mso-style-link:"Plain Text";
-         font-family:"Courier New";}
-        .MsoChpDefault
-         {font-family:"Calibri",sans-serif;}
-        @page WordSection1
-         {size:8.5in 11.0in;
-         margin:.6in 49.5pt .6in .8in;}
-        div.WordSection1
-         {page:WordSection1;}
-         /* List Definitions */
-         ol
-         {margin-bottom:0in;}
-        ul
-         {margin-bottom:0in;}
-
         body {
             font-family: Arial, sans-serif;
             max-width: 800px;
@@ -148,39 +67,44 @@ jobs:
             background: #f8f9fa;
             color: #333;
         }
-
-        h1, h2 {
-            color: #2c3e50;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 5px;
-        }
-
         .resume-container {
             background: white;
             padding: 30px;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
-        -->
         </style>
         </head>
-
-        <body bgcolor=white lang=EN-US link="#0563C1" vlink="#954F72" style='word-wrap: break-word'>
-        <div class="resume-container">'''
+        <body>
+        <div class=\"resume-container\">'''
         
-        # Create complete HTML with your styling
+        # Create complete HTML
         full_html = css_styles + html_content + '''
         </div>
         </body>
         </html>'''
         
-        # Save as index.html
-        with open('index.html', 'w', encoding='utf-8') as f:
-            f.write(full_html)
+        print('Writing HTML file...')
+        try:
+            with open('index.html', 'w', encoding='utf-8') as f:
+                f.write(full_html)
+            print('✅ index.html created successfully!')
+        except Exception as e:
+            print(f'ERROR writing file: {e}')
+            exit(1)
+        "
         
-        print('Resume converted with your custom CSS styling!')
-        EOF
-        python convert_resume.py
+    - name: Verify HTML file was created
+      run: |
+        if [ -f "index.html" ]; then
+          echo "✅ index.html created successfully"
+          echo "File size: $(wc -c < index.html) bytes"
+          echo "First 200 characters:"
+          head -c 200 index.html
+        else
+          echo "❌ index.html was NOT created"
+          exit 1
+        fi
         
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
