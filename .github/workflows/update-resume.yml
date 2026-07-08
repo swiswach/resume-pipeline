@@ -1,4 +1,4 @@
-name: Update Resume
+name: Update Resume Website
 on:
   push:
     branches: [main]
@@ -14,14 +14,14 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.x'
-        
+
     - name: Install dependencies
       run: |
         pip install python-docx mammoth beautifulsoup4
         
     - name: Convert resume to HTML with your CSS
       run: |
-        python -c "
+        cat > convert_resume.py << 'EOF'
         import mammoth
         import os
         
@@ -33,19 +33,19 @@ jobs:
         # Your exact CSS styling
         css_styles = '''<html>
         <head>
-        <meta http-equiv=Content-Type content=\"text/html; charset=windows-1252\">
-        <meta name=Generator content=\"Microsoft Word 15 (filtered)\">
+        <meta http-equiv=Content-Type content="text/html; charset=windows-1252">
+        <meta name=Generator content="Microsoft Word 15 (filtered)">
         <style>
         <!--
-         /* Font Definitions */
+        /* Font Definitions */
          @font-face
          {font-family:Wingdings;
          panose-1:5 0 0 0 0 0 0 0 0 0;}
         @font-face
-         {font-family:\"MS Mincho\";
+         {font-family:"MS Mincho";
          panose-1:2 2 6 9 4 2 5 8 3 4;}
         @font-face
-         {font-family:\"Cambria Math\";
+         {font-family:"Cambria Math";
          panose-1:2 4 5 3 5 4 6 3 2 4;}
         @font-face
          {font-family:Calibri;
@@ -54,22 +54,22 @@ jobs:
          {font-family:Verdana;
          panose-1:2 11 6 4 3 5 4 4 2 4;}
         @font-face
-         {font-family:\"Wingdings 2\";
+         {font-family:"Wingdings 2";
          panose-1:5 2 1 2 1 5 7 7 7 7;}
         @font-face
          {font-family:OpenSymbol;
          panose-1:5 1 0 0 0 0 0 0 0 0;}
         @font-face
-         {font-family:\"Segoe UI\";
+         {font-family:"Segoe UI";
          panose-1:2 11 5 2 4 2 4 2 2 3;}
         @font-face
-         {font-family:\"Liberation Sans\";
+         {font-family:"Liberation Sans";
          panose-1:2 11 6 4 2 2 2 2 2 4;}
         @font-face
-         {font-family:\"Microsoft YaHei\";
+         {font-family:"Microsoft YaHei";
          panose-1:2 11 5 3 2 2 4 2 2 4;}
         @font-face
-         {font-family:\"Lucida Sans\";
+         {font-family:"Lucida Sans";
          panose-1:2 11 6 2 3 5 4 2 2 4;}
         @font-face
          {font-family:Tahoma;
@@ -78,57 +78,57 @@ jobs:
          {font-family:Georgia;
          panose-1:2 4 5 2 5 4 5 2 3 3;}
         @font-face
-         {font-family:\"\\@MS Mincho\";
+         {font-family:"\\@MS Mincho";
          panose-1:2 2 6 9 4 2 5 8 3 4;}
         @font-face
-         {font-family:\"\\@Microsoft YaHei\";}
+         {font-family:"\\@Microsoft YaHei";}
          /* Style Definitions */
          p.MsoNormal, li.MsoNormal, div.MsoNormal
          {margin:0in;
          font-size:11.0pt;
-         font-family:\"Calibri\",sans-serif;}
+         font-family:"Calibri",sans-serif;}
         a:link, span.MsoHyperlink
          {color:#0563C1;
          text-decoration:underline;}
         p.MsoPlainText, li.MsoPlainText, div.MsoPlainText
-         {mso-style-link:\"Plain Text Char\";
+         {mso-style-link:"Plain Text Char";
          margin:0in;
          font-size:10.0pt;
-         font-family:\"Courier New\";}
+         font-family:"Courier New";}
         p.MsoListParagraph, li.MsoListParagraph, div.MsoListParagraph
          {margin-top:0in;
          margin-right:0in;
          margin-bottom:0in;
          margin-left:.5in;
          font-size:11.0pt;
-         font-family:\"Calibri\",sans-serif;}
+         font-family:"Calibri",sans-serif;}
         p.MsoListParagraphCxSpFirst, li.MsoListParagraphCxSpFirst, div.MsoListParagraphCxSpFirst
          {margin-top:0in;
          margin-right:0in;
          margin-bottom:0in;
          margin-left:.5in;
          font-size:11.0pt;
-         font-family:\"Calibri\",sans-serif;}
+         font-family:"Calibri",sans-serif;}
         p.MsoListParagraphCxSpMiddle, li.MsoListParagraphCxSpMiddle, div.MsoListParagraphCxSpMiddle
          {margin-top:0in;
          margin-right:0in;
          margin-bottom:0in;
          margin-left:.5in;
          font-size:11.0pt;
-         font-family:\"Calibri\",sans-serif;}
+         font-family:"Calibri",sans-serif;}
         p.MsoListParagraphCxSpLast, li.MsoListParagraphCxSpLast, div.MsoListParagraphCxSpLast
          {margin-top:0in;
          margin-right:0in;
          margin-bottom:0in;
          margin-left:.5in;
          font-size:11.0pt;
-         font-family:\"Calibri\",sans-serif;}
+         font-family:"Calibri",sans-serif;}
         span.PlainTextChar
-         {mso-style-name:\"Plain Text Char\";
-         mso-style-link:\"Plain Text\";
-         font-family:\"Courier New\";}
+         {mso-style-name:"Plain Text Char";
+         mso-style-link:"Plain Text";
+         font-family:"Courier New";}
         .MsoChpDefault
-         {font-family:\"Calibri\",sans-serif;}
+         {font-family:"Calibri",sans-serif;}
         @page WordSection1
          {size:8.5in 11.0in;
          margin:.6in 49.5pt .6in .8in;}
@@ -165,8 +165,8 @@ jobs:
         </style>
         </head>
 
-        <body bgcolor=white lang=EN-US link=\"#0563C1\" vlink=\"#954F72\" style='word-wrap: break-word'>
-        <div class=\"resume-container\">'''
+        <body bgcolor=white lang=EN-US link="#0563C1" vlink="#954F72" style='word-wrap: break-word'>
+        <div class="resume-container">'''
         
         # Create complete HTML with your styling
         full_html = css_styles + html_content + '''
@@ -179,7 +179,8 @@ jobs:
             f.write(full_html)
         
         print('Resume converted with your custom CSS styling!')
-        "
+        EOF
+        python convert_resume.py
         
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
