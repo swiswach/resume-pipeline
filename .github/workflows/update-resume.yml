@@ -3,22 +3,13 @@ on:
   push:
     branches: [main]
     paths: ['resume.docx']
+  workflow_dispatch:
 
 jobs:
   update-resume:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Check if resume.docx exists
-      run: |
-        ls -la
-        if [ -f "resume.docx" ]; then
-          echo "✅ resume.docx found"
-        else
-          echo "❌ resume.docx NOT found"
-          exit 1
-        fi
     
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -27,37 +18,26 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install python-docx mammoth beautifulsoup4
+        pip install python-docx mammoth
         
-    - name: Convert resume to HTML with debugging
+    - name: Convert resume to HTML
       run: |
         python -c "
         import mammoth
-        import os
         
-        print('Starting conversion...')
+        print('Converting resume.docx to HTML...')
         
-        # Check if file exists
-        if not os.path.exists('resume.docx'):
-            print('ERROR: resume.docx not found!')
-            exit(1)
+        # Convert Word doc to HTML
+        with open('resume.docx', 'rb') as docx_file:
+            result = mammoth.convert_to_html(docx_file)
+            html_content = result.value
         
-        print('Converting .docx to HTML...')
-        try:
-            with open('resume.docx', 'rb') as docx_file:
-                result = mammoth.convert_to_html(docx_file)
-                html_content = result.value
-                print(f'Conversion successful! HTML length: {len(html_content)}')
-        except Exception as e:
-            print(f'ERROR during conversion: {e}')
-            exit(1)
-        
-        # Simple CSS for now
-        css_styles = '''<!DOCTYPE html>
+        # Create complete HTML page
+        full_html = '''<!DOCTYPE html>
         <html>
         <head>
         <meta charset=\"utf-8\">
-        <title>Resume</title>
+        <title>My Resume</title>
         <style>
         body {
             font-family: Arial, sans-serif;
@@ -66,6 +46,7 @@ jobs:
             padding: 40px;
             background: #f8f9fa;
             color: #333;
+            line-height: 1.6;
         }
         .resume-container {
             background: white;
@@ -73,44 +54,32 @@ jobs:
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
+        h1, h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
         </style>
         </head>
         <body>
-        <div class=\"resume-container\">'''
-        
-        # Create complete HTML
-        full_html = css_styles + html_content + '''
+        <div class=\"resume-container\">
+        ''' + html_content + '''
         </div>
         </body>
         </html>'''
         
-        print('Writing HTML file...')
-        try:
-            with open('index.html', 'w', encoding='utf-8') as f:
-                f.write(full_html)
-            print('✅ index.html created successfully!')
-        except Exception as e:
-            print(f'ERROR writing file: {e}')
-            exit(1)
-        "
+        # Save as index.html
+        with open('index.html', 'w', encoding='utf-8') as f:
+            f.write(full_html)
         
-    - name: Verify HTML file was created
-      run: |
-        if [ -f "index.html" ]; then
-          echo "✅ index.html created successfully"
-          echo "File size: $(wc -c < index.html) bytes"
-          echo "First 200 characters:"
-          head -c 200 index.html
-        else
-          echo "❌ index.html was NOT created"
-          exit 1
-        fi
+        print('✅ Resume converted to index.html successfully!')
+        "
         
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
         aws-region: us-east-1
         
     - name: Deploy to S3
