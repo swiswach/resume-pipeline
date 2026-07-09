@@ -15,31 +15,82 @@ jobs:
       with:
         python-version: '3.x'
     - name: Install dependencies
-      run: pip install python-docx mammoth
-    - name: Convert resume
+      run: pip install python-docx mammoth beautifulsoup4
+    - name: Convert resume with centered titles
       run: |
         python -c "
         import mammoth
+        from bs4 import BeautifulSoup
+        
+        # Convert Word to HTML
         with open('resume.docx', 'rb') as f:
             html = mammoth.convert_to_html(f).value
+        
+        # Parse HTML to fix section titles
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Find section titles and mark them
+        section_titles = [
+            'key accomplishments', 'professional experience', 
+            'training and education', 'education and training',
+            'certifications', 'community involvement'
+        ]
+        
+        for element in soup.find_all(['p', 'h1', 'h2', 'h3']):
+            text = element.get_text().strip().lower()
+            if any(title in text for title in section_titles):
+                element['class'] = 'section-title'
+                print(f'Found section: {element.get_text()}')
+        
+        html = str(soup)
         
         css = '''<style>
         body{font-family:Calibri;margin:0;padding:40px;background:linear-gradient(135deg,#f5f7fa,#c3cfe2);min-height:100vh}
         .container{max-width:8.5in;margin:0 auto;background:white;padding:0.75in;box-shadow:0 4px 8px rgba(0,0,0,0.1),0 6px 20px rgba(0,0,0,0.15);border-radius:8px}
         h1{font-size:18pt;text-align:center;margin:0 0 8pt 0;color:#2c3e50}
         h2{font-size:14pt;text-align:center;margin:18pt 0 12pt 0;color:#2c3e50;text-transform:uppercase;border-bottom:2pt solid #3498db;padding-bottom:6pt}
+        
+        /* Target section titles specifically */
+        .section-title{
+            font-size:14pt !important;
+            font-weight:bold !important;
+            text-align:center !important;
+            margin:18pt 0 12pt 0 !important;
+            color:#2c3e50 !important;
+            text-transform:uppercase !important;
+            border-bottom:2pt solid #3498db !important;
+            padding-bottom:6pt !important;
+        }
+        
         p{margin:0 0 6pt 0}
         .container>p:nth-child(2),.container>p:nth-child(3){text-align:center;color:#7f8c8d}
+        strong{color:#2c3e50}
+        ul,ol{margin:6pt 0;padding-left:0.25in}
+        li{margin:3pt 0}
         </style>'''
         
         with open('index.html', 'w') as f:
             f.write(f'<html><head>{css}</head><body><div class=\"container\">{html}</div></body></html>')
+        
+        print('✅ Resume converted with centered section titles!')
         "
+        
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
+        
     - name: Deploy to S3
-      run: aws s3 sync . s3://cloud-challenge01 --exclude ".git/*" --exclude ".github/*" --exclude "*.docx"
+      run: |
+        aws s3 sync . s3://cloud-challenge01 --exclude ".git/*" --exclude ".github/*" --exclude "*.docx"
+        
+    - name: Auto-invalidate CloudFront
+      run: |
+        aws cloudfront create-invalidation \
+          --distribution-id E1D217O0NBRUC2 \
+          --paths "/*" \
+          --query 'Invalidation.Id' \
+          --output text
+        echo "✅ CloudFront invalidation created - your site will update in 5-30 seconds!"
