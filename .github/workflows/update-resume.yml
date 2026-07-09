@@ -30,11 +30,14 @@ jobs:
         with open('resume.docx', 'rb') as f:
             html = mammoth.convert_to_html(f).value
         
-        # Fix character encoding issues
+        # Fix ALL character encoding issues first
         html = html.replace('â€"', '-')
         html = html.replace('â€™', "'")
         html = html.replace('â€œ', '"')
         html = html.replace('â€', '"')
+        html = html.replace('â€¦', '...')
+        
+        print("🔧 Fixed character encoding issues")
         
         # Parse HTML
         soup = BeautifulSoup(html, 'html.parser')
@@ -43,7 +46,7 @@ jobs:
         first_p = soup.find('p')
         if first_p:
             first_p['class'] = 'name-title'
-            print(f'Found name: {first_p.get_text()[:50]}...')
+            print(f'✅ Found name: {first_p.get_text()[:30]}...')
         
         # Find and mark specific paragraphs
         paragraphs = soup.find_all('p')
@@ -53,12 +56,21 @@ jobs:
             # Contact info paragraph
             if '(425) 245-4899' in text or 'Donald.gardner4321@gmail.com' in text:
                 p['class'] = 'contact-info'
-                print(f'Found contact info: {text[:50]}...')
+                print(f'✅ Found contact info: {text[:40]}...')
             
-            # Professional summary paragraph
-            elif 'Customer-focused cybersecurity professional' in text:
+            # Professional summary - look for key phrases
+            elif any(phrase in text.lower() for phrase in [
+                'customer-focused cybersecurity', 
+                'cybersecurity professional',
+                'proven track record'
+            ]):
                 p['class'] = 'professional-summary'
-                print(f'Found professional summary: {text[:50]}...')
+                print(f'✅ Found professional summary: {text[:40]}...')
+            
+            # Job entries - look for job title patterns with dates
+            elif re.search(r'\d{1,2}/\d{4}\s*[-–—]\s*\d{1,2}/\d{4}', text):
+                p['class'] = 'job-entry'
+                print(f'✅ Found job entry: {text[:50]}...')
         
         # Find section titles
         section_titles = [
@@ -71,7 +83,7 @@ jobs:
             text = element.get_text().strip().lower()
             if any(title in text for title in section_titles):
                 element['class'] = 'section-title'
-                print(f'Found section: {element.get_text()}')
+                print(f'✅ Found section: {element.get_text()}')
         
         html = str(soup)
         
@@ -79,6 +91,7 @@ jobs:
         body{font-family:Calibri,sans-serif;margin:0;padding:40px;background:linear-gradient(135deg,#f5f7fa,#c3cfe2);min-height:100vh}
         .container{max-width:8.5in;margin:0 auto;background:white;padding:0.75in;box-shadow:0 4px 8px rgba(0,0,0,0.1),0 6px 20px rgba(0,0,0,0.15);border-radius:8px}
         
+        /* Name - centered, bold */
         .name-title{
             font-family:Calibri,sans-serif !important;
             font-size:16pt !important;
@@ -88,6 +101,7 @@ jobs:
             color:#2c3e50 !important;
         }
         
+        /* Contact info - centered */
         .contact-info{
             font-family:Calibri,sans-serif !important;
             font-size:11pt !important;
@@ -96,16 +110,31 @@ jobs:
             color:#7f8c8d !important;
         }
         
+        /* Professional summary - LEFT aligned, normal case */
         .professional-summary{
             font-family:Calibri,sans-serif !important;
             font-size:11pt !important;
+            font-weight:normal !important;
             text-align:left !important;
+            text-transform:none !important;
             margin:0 0 18pt 0 !important;
             line-height:1.4 !important;
             text-indent:0.25in !important;
             color:#000 !important;
         }
         
+        /* Job entries - consistent formatting */
+        .job-entry{
+            font-family:Calibri,sans-serif !important;
+            font-size:11pt !important;
+            font-weight:normal !important;
+            text-align:left !important;
+            margin:12pt 0 6pt 0 !important;
+            line-height:1.3 !important;
+            color:#000 !important;
+        }
+        
+        /* Section titles - centered, small caps */
         .section-title{
             font-family:Calibri,sans-serif !important;
             font-size:16pt !important;
@@ -118,18 +147,24 @@ jobs:
             padding-bottom:0 !important;
         }
         
+        /* Regular paragraphs */
         p{
             margin:0 0 6pt 0;
             font-family:Calibri,sans-serif;
             font-size:11pt;
             line-height:1.3;
+            text-align:left;
+            font-weight:normal;
+            text-transform:none;
         }
         
+        /* Job titles bold */
         p strong{
             color:#2c3e50;
             font-weight:bold;
         }
         
+        /* Lists */
         ul,ol{
             margin:6pt 0 12pt 0;
             padding-left:0.25in;
