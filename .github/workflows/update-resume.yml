@@ -1,8 +1,5 @@
 name: Update Resume Website
 on:
-  push:
-    branches: [main]
-    paths: ['resume.docx']
   workflow_dispatch:
 
 jobs:
@@ -10,92 +7,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    
+    - name: Check files
+      run: |
+        ls -la
+        echo "Looking for resume.docx..."
+        
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.x'
+        
     - name: Install dependencies
       run: pip install python-docx mammoth beautifulsoup4
-    - name: Create conversion script
+      
+    - name: Test conversion
       run: |
-        cat > convert_resume.py << 'EOF'
+        python3 -c "
         import mammoth
-        
-        # Convert Word to HTML
-        with open('resume.docx', 'rb') as f:
-            html = mammoth.convert_to_html(f).value
-        
-        # Fix character encoding - ALL variations
-        replacements = {
-            'â€"': '-',
-            'â€™': "'", 
-            'â€œ': '"',
-            'â€': '"',
-            'â€¦': '...',
-            'studentsâ€™': "students'",
-            '–': '-',
-            ''': "'",
-            '"': '"',
-            '"': '"'
-        }
-        
-        for old, new in replacements.items():
-            html = html.replace(old, new)
-        
-        print("Fixed character encoding")
-        
-        # Simple CSS with aggressive overrides
-        css = '''<style>
-        body { font-family: Calibri, sans-serif; margin: 0; padding: 40px; background: linear-gradient(135deg, #f5f7fa, #c3cfe2); }
-        .container { max-width: 8.5in; margin: 0 auto; background: white; padding: 0.75in; box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-radius: 8px; }
-        
-        /* Force ALL paragraphs to be left-aligned and normal case */
-        p { 
-            text-align: left !important; 
-            text-transform: none !important; 
-            font-weight: normal !important;
-            margin: 6pt 0 !important;
-            font-size: 11pt !important;
-            line-height: 1.3 !important;
-        }
-        
-        /* Only the FIRST paragraph (name) should be centered and bold */
-        p:first-of-type { 
-            text-align: center !important; 
-            font-weight: bold !important; 
-            font-size: 16pt !important;
-            color: #2c3e50 !important;
-        }
-        
-        /* Second paragraph (contact) centered */
-        p:nth-of-type(2) { 
-            text-align: center !important; 
-            color: #7f8c8d !important;
-        }
-        
-        strong { color: #2c3e50; }
-        </style>'''
-        
-        with open('index.html', 'w') as f:
-            f.write(f'<html><head>{css}</head><body><div class="container">{html}</div></body></html>')
-        
-        print("Resume converted!")
-        EOF
-        
-    - name: Convert resume
-      run: python convert_resume.py
-        
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1
-        
-    - name: Deploy to S3
-      run: aws s3 sync . s3://cloud-challenge01 --exclude ".git/*" --exclude ".github/*" --exclude "*.docx" --exclude "*.py"
-        
-    - name: Auto-invalidate CloudFront
-      run: |
-        aws cloudfront create-invalidation --distribution-id E1D217O0NBRUC2 --paths "/*"
-        echo "Site updated!"
+        print('Mammoth imported successfully')
+        import os
+        if os.path.exists('resume.docx'):
+            print('resume.docx found!')
+        else:
+            print('resume.docx NOT found!')
+            print('Files in directory:', os.listdir('.'))
+        "
