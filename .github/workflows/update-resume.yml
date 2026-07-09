@@ -10,15 +10,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.x'
+        
     - name: Install dependencies
       run: pip install python-docx mammoth beautifulsoup4
-    - name: Convert resume with proper formatting
+      
+    - name: Create conversion script
       run: |
-        python -c "
+        cat > convert_resume.py << 'EOF'
         import mammoth
         from bs4 import BeautifulSoup
         import re
@@ -27,37 +30,37 @@ jobs:
         with open('resume.docx', 'rb') as f:
             html = mammoth.convert_to_html(f).value
         
-        # Fix character encoding issues (em-dash to regular dash)
+        # Fix character encoding issues
         html = html.replace('â€"', '-')
-        html = html.replace('â€™', chr(39))
-        html = html.replace('â€œ', chr(34))
-        html = html.replace('â€', chr(34))
+        html = html.replace('â€™', "'")
+        html = html.replace('â€œ', '"')
+        html = html.replace('â€', '"')
         
-        # Parse HTML to fix section titles
+        # Parse HTML
         soup = BeautifulSoup(html, 'html.parser')
         
         # Mark the first paragraph as the name
         first_p = soup.find('p')
         if first_p:
             first_p['class'] = 'name-title'
-            print('Found name: ' + first_p.get_text()[:50] + '...')
+            print(f'Found name: {first_p.get_text()[:50]}...')
         
         # Find and mark specific paragraphs
         paragraphs = soup.find_all('p')
         for i, p in enumerate(paragraphs):
             text = p.get_text().strip()
             
-            # Contact info paragraph (contains phone and email)
+            # Contact info paragraph
             if '(425) 245-4899' in text or 'Donald.gardner4321@gmail.com' in text:
                 p['class'] = 'contact-info'
-                print('Found contact info: ' + text[:50] + '...')
+                print(f'Found contact info: {text[:50]}...')
             
-            # Professional summary paragraph (the long paragraph)
+            # Professional summary paragraph
             elif 'Customer-focused cybersecurity professional' in text:
                 p['class'] = 'professional-summary'
-                print('Found professional summary: ' + text[:50] + '...')
+                print(f'Found professional summary: {text[:50]}...')
         
-        # Find section titles and mark them
+        # Find section titles
         section_titles = [
             'key accomplishments', 'professional experience', 
             'training and education', 'education and training',
@@ -68,7 +71,7 @@ jobs:
             text = element.get_text().strip().lower()
             if any(title in text for title in section_titles):
                 element['class'] = 'section-title'
-                print('Found section: ' + element.get_text())
+                print(f'Found section: {element.get_text()}')
         
         html = str(soup)
         
@@ -142,10 +145,13 @@ jobs:
         </style>'''
         
         with open('index.html', 'w') as f:
-            f.write('<html><head>' + css + '</head><body><div class=\"container\">' + html + '</div></body></html>')
+            f.write(f'<html><head>{css}</head><body><div class="container">{html}</div></body></html>')
         
         print('✅ Resume converted with proper formatting!')
-        "
+        EOF
+        
+    - name: Convert resume
+      run: python convert_resume.py
         
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
@@ -156,7 +162,7 @@ jobs:
         
     - name: Deploy to S3
       run: |
-        aws s3 sync . s3://cloud-challenge01 --exclude ".git/*" --exclude ".github/*" --exclude "*.docx"
+        aws s3 sync . s3://cloud-challenge01 --exclude ".git/*" --exclude ".github/*" --exclude "*.docx" --exclude "*.py"
         
     - name: Auto-invalidate CloudFront
       run: |
