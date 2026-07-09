@@ -20,134 +20,128 @@ jobs:
       run: |
         pip install python-docx mammoth
         
-    - name: Convert resume with original Word formatting
+    - name: Convert resume to HTML with proper CSS
       run: |
-        cat > convert_resume.py << 'EOF'
+        python -c "
         import mammoth
         
-        # Convert .docx to HTML
+        print('Converting resume.docx to HTML...')
+        
+        # Convert Word doc to HTML
         with open('resume.docx', 'rb') as docx_file:
             result = mammoth.convert_to_html(docx_file)
             html_content = result.value
         
-        # Your exact original CSS styling from Word
-        css_styles = '''<html>
+        # Create complete HTML page with GOOD CSS
+        full_html = '''<!DOCTYPE html>
+        <html>
         <head>
-        <meta http-equiv=Content-Type content="text/html; charset=windows-1252">
-        <meta name=Generator content="Microsoft Word 15 (filtered)">
+        <meta charset=\"utf-8\">
+        <title>My Resume</title>
         <style>
-        <!--
-        /* Font Definitions */
-         @font-face
-         {font-family:Wingdings;
-         panose-1:5 0 0 0 0 0 0 0 0 0;}
-        @font-face
-         {font-family:"MS Mincho";
-         panose-1:2 2 6 9 4 2 5 8 3 4;}
-        @font-face
-         {font-family:"Cambria Math";
-         panose-1:2 4 5 3 5 4 6 3 2 4;}
-        @font-face
-         {font-family:Calibri;
-         panose-1:2 15 5 2 2 2 4 3 2 4;}
-        @font-face
-         {font-family:Verdana;
-         panose-1:2 11 6 4 3 5 4 4 2 4;}
-        @font-face
-         {font-family:"Wingdings 2";
-         panose-1:5 2 1 2 1 5 7 7 7 7;}
-        @font-face
-         {font-family:OpenSymbol;
-         panose-1:5 1 0 0 0 0 0 0 0 0;}
-        @font-face
-         {font-family:"Segoe UI";
-         panose-1:2 11 5 2 4 2 4 2 2 3;}
-        @font-face
-         {font-family:"Liberation Sans";
-         panose-1:2 11 6 4 2 2 2 2 2 4;}
-        @font-face
-         {font-family:"Microsoft YaHei";
-         panose-1:2 11 5 3 2 2 4 2 2 4;}
-        @font-face
-         {font-family:"Lucida Sans";
-         panose-1:2 11 6 2 3 5 4 2 2 4;}
-        @font-face
-         {font-family:Tahoma;
-         panose-1:2 11 6 4 3 5 4 4 2 4;}
-        @font-face
-         {font-family:Georgia;
-         panose-1:2 4 5 2 5 4 5 2 3 3;}
-        @font-face
-         {font-family:"\\@MS Mincho";
-         panose-1:2 2 6 9 4 2 5 8 3 4;}
-        @font-face
-         {font-family:"\\@Microsoft YaHei";}
-         /* Style Definitions */
-         p.MsoNormal, li.MsoNormal, div.MsoNormal
-         {margin:0in;
-         font-size:11.0pt;
-         font-family:"Calibri",sans-serif;}
-        a:link, span.MsoHyperlink
-         {color:#0563C1;
-         text-decoration:underline;}
-        p.MsoPlainText, li.MsoPlainText, div.MsoPlainText
-         {mso-style-link:"Plain Text Char";
-         margin:0in;
-         font-size:10.0pt;
-         font-family:"Courier New";}
-        p.MsoListParagraph, li.MsoListParagraph, div.MsoListParagraph
-         {margin-top:0in;
-         margin-right:0in;
-         margin-bottom:0in;
-         margin-left:.5in;
-         font-size:11.0pt;
-         font-family:"Calibri",sans-serif;}
-        p.MsoListParagraphCxSpFirst, li.MsoListParagraphCxSpFirst, div.MsoListParagraphCxSpFirst
-         {margin-top:0in;
-         margin-right:0in;
-         margin-bottom:0in;
-         margin-left:.5in;
-         font-size:11.0pt;
-         font-family:"Calibri",sans-serif;}
-        p.MsoListParagraphCxSpMiddle, li.MsoListParagraphCxSpMiddle, div.MsoListParagraphCxSpMiddle
-         {margin-top:0in;
-         margin-right:0in;
-         margin-bottom:0in;
-         margin-left:.5in;
-         font-size:11.0pt;
-         font-family:"Calibri",sans-serif;}
-        p.MsoListParagraphCxSpLast, li.MsoListParagraphCxSpLast, div.MsoListParagraphCxSpLast
-         {margin-top:0in;
-         margin-right:0in;
-         margin-bottom:0in;
-         margin-left:.5in;
-         font-size:11.0pt;
-         font-family:"Calibri",sans-serif;}
-        span.PlainTextChar
-         {mso-style-name:"Plain Text Char";
-         mso-style-link:"Plain Text";
-         font-family:"Courier New";}
-        .MsoChpDefault
-         {font-family:"Calibri",sans-serif;}
-        @page WordSection1
-         {size:8.5in 11.0in;
-         margin:.6in 49.5pt .6in .8in;}
-        div.WordSection1
-         {page:WordSection1;}
-         /* List Definitions */
-         ol
-         {margin-bottom:0in;}
-        ul
-         {margin-bottom:0in;}
-        -->
+        body {
+            font-family: \"Calibri\", \"Times New Roman\", serif;
+            max-width: 8.5in;
+            margin: 0 auto;
+            padding: 0.75in;
+            background: white;
+            color: #000;
+            line-height: 1.15;
+            font-size: 11pt;
+        }
+        
+        /* Print-like styling */
+        @media screen {
+            body {
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                margin: 20px auto;
+                background: #f5f5f5;
+            }
+            .page {
+                background: white;
+                padding: 0.75in;
+                min-height: 10in;
+            }
+        }
+        
+        /* Headings */
+        h1 {
+            font-size: 16pt;
+            font-weight: bold;
+            text-align: center;
+            margin: 0 0 6pt 0;
+            color: #000;
+        }
+        
+        h2 {
+            font-size: 12pt;
+            font-weight: bold;
+            margin: 12pt 0 6pt 0;
+            color: #000;
+            border-bottom: 1pt solid #000;
+        }
+        
+        h3 {
+            font-size: 11pt;
+            font-weight: bold;
+            margin: 6pt 0 3pt 0;
+            color: #000;
+        }
+        
+        /* Paragraphs */
+        p {
+            margin: 0 0 6pt 0;
+            text-align: justify;
+        }
+        
+        /* Center contact info */
+        p:nth-child(1), p:nth-child(2), p:nth-child(3) {
+            text-align: center;
+            margin: 3pt 0;
+        }
+        
+        /* Lists */
+        ul, ol {
+            margin: 6pt 0;
+            padding-left: 0.25in;
+        }
+        
+        li {
+            margin: 3pt 0;
+        }
+        
+        /* Strong text */
+        strong, b {
+            font-weight: bold;
+        }
+        
+        /* Italic text */
+        em, i {
+            font-style: italic;
+        }
+        
+        /* Links */
+        a {
+            color: #0000EE;
+            text-decoration: underline;
+        }
+        
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 6pt 0;
+        }
+        
+        td, th {
+            padding: 3pt;
+            vertical-align: top;
+        }
         </style>
         </head>
-
-        <body bgcolor=white lang=EN-US link="#0563C1" vlink="#954F72" style='word-wrap: break-word'>
-        <div class="WordSection1">'''
-        
-        # Create complete HTML with your original styling
-        full_html = css_styles + html_content + '''
+        <body>
+        <div class=\"page\">
+        ''' + html_content + '''
         </div>
         </body>
         </html>'''
@@ -156,9 +150,8 @@ jobs:
         with open('index.html', 'w', encoding='utf-8') as f:
             f.write(full_html)
         
-        print('Resume converted with original Word formatting!')
-        EOF
-        python convert_resume.py
+        print('✅ Resume converted with professional styling!')
+        "
         
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
