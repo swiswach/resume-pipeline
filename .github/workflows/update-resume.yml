@@ -21,10 +21,17 @@ jobs:
         python -c "
         import mammoth
         from bs4 import BeautifulSoup
+        import re
         
         # Convert Word to HTML
         with open('resume.docx', 'rb') as f:
             html = mammoth.convert_to_html(f).value
+        
+        # Fix character encoding issues (em-dash to regular dash)
+        html = html.replace('â€"', '-')
+        html = html.replace('â€™', \"'\")
+        html = html.replace('â€œ', '\"')
+        html = html.replace('â€', '\"')
         
         # Parse HTML to fix section titles
         soup = BeautifulSoup(html, 'html.parser')
@@ -88,7 +95,7 @@ jobs:
             color:#7f8c8d !important;
         }
         
-        /* Professional summary - left justified paragraph */
+        /* Professional summary - left justified, regular paragraph */
         .professional-summary{
             font-family:Calibri,sans-serif !important;
             font-size:11pt !important;
@@ -112,11 +119,34 @@ jobs:
             padding-bottom:0 !important;
         }
         
-        h1,h2{font-size:14pt;text-align:center;margin:18pt 0 12pt 0;color:#2c3e50}
-        p{margin:0 0 6pt 0;font-family:Calibri,sans-serif}
+        /* Regular paragraphs and job entries */
+        p{
+            margin:0 0 6pt 0;
+            font-family:Calibri,sans-serif;
+            font-size:11pt;
+            line-height:1.3;
+        }
+        
+        /* Job titles and company info */
+        p strong{
+            color:#2c3e50;
+            font-weight:bold;
+        }
+        
+        /* Lists formatting */
+        ul,ol{
+            margin:6pt 0 12pt 0;
+            padding-left:0.25in;
+        }
+        
+        li{
+            margin:3pt 0;
+            font-size:11pt;
+            line-height:1.3;
+        }
+        
+        /* General strong text */
         strong{color:#2c3e50}
-        ul,ol{margin:6pt 0;padding-left:0.25in}
-        li{margin:3pt 0}
         </style>'''
         
         with open('index.html', 'w') as f:
