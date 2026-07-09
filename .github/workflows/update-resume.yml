@@ -29,9 +29,9 @@ jobs:
         
         # Fix character encoding issues (em-dash to regular dash)
         html = html.replace('â€"', '-')
-        html = html.replace('â€™', \"'\")
-        html = html.replace('â€œ', '\"')
-        html = html.replace('â€', '\"')
+        html = html.replace('â€™', chr(39))
+        html = html.replace('â€œ', chr(34))
+        html = html.replace('â€', chr(34))
         
         # Parse HTML to fix section titles
         soup = BeautifulSoup(html, 'html.parser')
@@ -40,7 +40,7 @@ jobs:
         first_p = soup.find('p')
         if first_p:
             first_p['class'] = 'name-title'
-            print(f'Found name: {first_p.get_text()[:50]}...')
+            print('Found name: ' + first_p.get_text()[:50] + '...')
         
         # Find and mark specific paragraphs
         paragraphs = soup.find_all('p')
@@ -50,12 +50,12 @@ jobs:
             # Contact info paragraph (contains phone and email)
             if '(425) 245-4899' in text or 'Donald.gardner4321@gmail.com' in text:
                 p['class'] = 'contact-info'
-                print(f'Found contact info: {text[:50]}...')
+                print('Found contact info: ' + text[:50] + '...')
             
             # Professional summary paragraph (the long paragraph)
             elif 'Customer-focused cybersecurity professional' in text:
                 p['class'] = 'professional-summary'
-                print(f'Found professional summary: {text[:50]}...')
+                print('Found professional summary: ' + text[:50] + '...')
         
         # Find section titles and mark them
         section_titles = [
@@ -68,7 +68,7 @@ jobs:
             text = element.get_text().strip().lower()
             if any(title in text for title in section_titles):
                 element['class'] = 'section-title'
-                print(f'Found section: {element.get_text()}')
+                print('Found section: ' + element.get_text())
         
         html = str(soup)
         
@@ -76,7 +76,6 @@ jobs:
         body{font-family:Calibri,sans-serif;margin:0;padding:40px;background:linear-gradient(135deg,#f5f7fa,#c3cfe2);min-height:100vh}
         .container{max-width:8.5in;margin:0 auto;background:white;padding:0.75in;box-shadow:0 4px 8px rgba(0,0,0,0.1),0 6px 20px rgba(0,0,0,0.15);border-radius:8px}
         
-        /* Name at top - centered, bold, Calibri 16 */
         .name-title{
             font-family:Calibri,sans-serif !important;
             font-size:16pt !important;
@@ -86,7 +85,6 @@ jobs:
             color:#2c3e50 !important;
         }
         
-        /* Contact info - centered */
         .contact-info{
             font-family:Calibri,sans-serif !important;
             font-size:11pt !important;
@@ -95,7 +93,6 @@ jobs:
             color:#7f8c8d !important;
         }
         
-        /* Professional summary - left justified, regular paragraph */
         .professional-summary{
             font-family:Calibri,sans-serif !important;
             font-size:11pt !important;
@@ -106,7 +103,6 @@ jobs:
             color:#000 !important;
         }
         
-        /* Section titles - centered, small caps, Calibri 16, no blue line */
         .section-title{
             font-family:Calibri,sans-serif !important;
             font-size:16pt !important;
@@ -119,7 +115,6 @@ jobs:
             padding-bottom:0 !important;
         }
         
-        /* Regular paragraphs and job entries */
         p{
             margin:0 0 6pt 0;
             font-family:Calibri,sans-serif;
@@ -127,13 +122,11 @@ jobs:
             line-height:1.3;
         }
         
-        /* Job titles and company info */
         p strong{
             color:#2c3e50;
             font-weight:bold;
         }
         
-        /* Lists formatting */
         ul,ol{
             margin:6pt 0 12pt 0;
             padding-left:0.25in;
@@ -145,12 +138,11 @@ jobs:
             line-height:1.3;
         }
         
-        /* General strong text */
         strong{color:#2c3e50}
         </style>'''
         
         with open('index.html', 'w') as f:
-            f.write(f'<html><head>{css}</head><body><div class=\"container\">{html}</div></body></html>')
+            f.write('<html><head>' + css + '</head><body><div class=\"container\">' + html + '</div></body></html>')
         
         print('✅ Resume converted with proper formatting!')
         "
