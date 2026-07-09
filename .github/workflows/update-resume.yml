@@ -35,11 +35,20 @@ jobs:
             first_p['class'] = 'name-title'
             print(f'Found name: {first_p.get_text()[:50]}...')
         
-        # Mark the second paragraph as intro paragraph
+        # Find and mark specific paragraphs
         paragraphs = soup.find_all('p')
-        if len(paragraphs) > 1:
-            paragraphs[1]['class'] = 'intro-paragraph'
-            print(f'Found intro: {paragraphs[1].get_text()[:50]}...')
+        for i, p in enumerate(paragraphs):
+            text = p.get_text().strip()
+            
+            # Contact info paragraph (contains phone and email)
+            if '(425) 245-4899' in text or 'Donald.gardner4321@gmail.com' in text:
+                p['class'] = 'contact-info'
+                print(f'Found contact info: {text[:50]}...')
+            
+            # Professional summary paragraph (the long paragraph)
+            elif 'Customer-focused cybersecurity professional' in text:
+                p['class'] = 'professional-summary'
+                print(f'Found professional summary: {text[:50]}...')
         
         # Find section titles and mark them
         section_titles = [
@@ -66,18 +75,28 @@ jobs:
             font-size:16pt !important;
             font-weight:bold !important;
             text-align:center !important;
-            margin:0 0 12pt 0 !important;
+            margin:0 0 8pt 0 !important;
             color:#2c3e50 !important;
         }
         
-        /* Intro paragraph - left justified, paragraph style */
-        .intro-paragraph{
+        /* Contact info - centered */
+        .contact-info{
+            font-family:Calibri,sans-serif !important;
+            font-size:11pt !important;
+            text-align:center !important;
+            margin:0 0 18pt 0 !important;
+            color:#7f8c8d !important;
+        }
+        
+        /* Professional summary - left justified paragraph */
+        .professional-summary{
             font-family:Calibri,sans-serif !important;
             font-size:11pt !important;
             text-align:left !important;
             margin:0 0 18pt 0 !important;
             line-height:1.4 !important;
             text-indent:0.25in !important;
+            color:#000 !important;
         }
         
         /* Section titles - centered, small caps, Calibri 16, no blue line */
@@ -95,7 +114,6 @@ jobs:
         
         h1,h2{font-size:14pt;text-align:center;margin:18pt 0 12pt 0;color:#2c3e50}
         p{margin:0 0 6pt 0;font-family:Calibri,sans-serif}
-        .container>p:nth-child(3),.container>p:nth-child(4){text-align:center;color:#7f8c8d}
         strong{color:#2c3e50}
         ul,ol{margin:6pt 0;padding-left:0.25in}
         li{margin:3pt 0}
