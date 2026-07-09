@@ -16,7 +16,7 @@ jobs:
         python-version: '3.x'
     - name: Install dependencies
       run: pip install python-docx mammoth beautifulsoup4
-    - name: Convert resume with centered titles
+    - name: Convert resume with proper formatting
       run: |
         python -c "
         import mammoth
@@ -28,6 +28,18 @@ jobs:
         
         # Parse HTML to fix section titles
         soup = BeautifulSoup(html, 'html.parser')
+        
+        # Mark the first paragraph as the name
+        first_p = soup.find('p')
+        if first_p:
+            first_p['class'] = 'name-title'
+            print(f'Found name: {first_p.get_text()[:50]}...')
+        
+        # Mark the second paragraph as intro paragraph
+        paragraphs = soup.find_all('p')
+        if len(paragraphs) > 1:
+            paragraphs[1]['class'] = 'intro-paragraph'
+            print(f'Found intro: {paragraphs[1].get_text()[:50]}...')
         
         # Find section titles and mark them
         section_titles = [
@@ -45,25 +57,45 @@ jobs:
         html = str(soup)
         
         css = '''<style>
-        body{font-family:Calibri;margin:0;padding:40px;background:linear-gradient(135deg,#f5f7fa,#c3cfe2);min-height:100vh}
+        body{font-family:Calibri,sans-serif;margin:0;padding:40px;background:linear-gradient(135deg,#f5f7fa,#c3cfe2);min-height:100vh}
         .container{max-width:8.5in;margin:0 auto;background:white;padding:0.75in;box-shadow:0 4px 8px rgba(0,0,0,0.1),0 6px 20px rgba(0,0,0,0.15);border-radius:8px}
-        h1{font-size:18pt;text-align:center;margin:0 0 8pt 0;color:#2c3e50}
-        h2{font-size:14pt;text-align:center;margin:18pt 0 12pt 0;color:#2c3e50;text-transform:uppercase;border-bottom:2pt solid #3498db;padding-bottom:6pt}
         
-        /* Target section titles specifically */
-        .section-title{
-            font-size:14pt !important;
+        /* Name at top - centered, bold, Calibri 16 */
+        .name-title{
+            font-family:Calibri,sans-serif !important;
+            font-size:16pt !important;
             font-weight:bold !important;
             text-align:center !important;
-            margin:18pt 0 12pt 0 !important;
+            margin:0 0 12pt 0 !important;
             color:#2c3e50 !important;
-            text-transform:uppercase !important;
-            border-bottom:2pt solid #3498db !important;
-            padding-bottom:6pt !important;
         }
         
-        p{margin:0 0 6pt 0}
-        .container>p:nth-child(2),.container>p:nth-child(3){text-align:center;color:#7f8c8d}
+        /* Intro paragraph - left justified, paragraph style */
+        .intro-paragraph{
+            font-family:Calibri,sans-serif !important;
+            font-size:11pt !important;
+            text-align:left !important;
+            margin:0 0 18pt 0 !important;
+            line-height:1.4 !important;
+            text-indent:0.25in !important;
+        }
+        
+        /* Section titles - centered, small caps, Calibri 16, no blue line */
+        .section-title{
+            font-family:Calibri,sans-serif !important;
+            font-size:16pt !important;
+            font-weight:normal !important;
+            text-align:center !important;
+            margin:24pt 0 12pt 0 !important;
+            color:#2c3e50 !important;
+            font-variant:small-caps !important;
+            border:none !important;
+            padding-bottom:0 !important;
+        }
+        
+        h1,h2{font-size:14pt;text-align:center;margin:18pt 0 12pt 0;color:#2c3e50}
+        p{margin:0 0 6pt 0;font-family:Calibri,sans-serif}
+        .container>p:nth-child(3),.container>p:nth-child(4){text-align:center;color:#7f8c8d}
         strong{color:#2c3e50}
         ul,ol{margin:6pt 0;padding-left:0.25in}
         li{margin:3pt 0}
@@ -72,7 +104,7 @@ jobs:
         with open('index.html', 'w') as f:
             f.write(f'<html><head>{css}</head><body><div class=\"container\">{html}</div></body></html>')
         
-        print('✅ Resume converted with centered section titles!')
+        print('✅ Resume converted with proper formatting!')
         "
         
     - name: Configure AWS credentials
