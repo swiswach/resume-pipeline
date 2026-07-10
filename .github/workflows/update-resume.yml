@@ -18,7 +18,7 @@ jobs:
     - name: Install dependencies
       run: pip install mammoth boto3 beautifulsoup4
         
-    - name: Convert and Fix HTML Structure
+    - name: Convert and Apply Smart Styling
       run: |
         python3 << 'EOF'
         import mammoth
@@ -29,37 +29,37 @@ jobs:
             result = mammoth.convert_to_html(docx_file)
             raw_html = result.value
         
-        print("=== RAW MAMMOTH OUTPUT ===")
-        print(raw_html[:500])
-        print("=" * 50)
+        print("=== Processing HTML with smart detection ===")
         
-        # Parse and modify the HTML
+        # Parse HTML
         soup = BeautifulSoup(raw_html, 'html.parser')
         
-        # Find and modify specific content
-        center_keywords = ["Donald Gardner", "(425) 245-4899", "Donald.gardner4321@gmail.com", 
-                          "LinkedIn", "YouTube", "Key Accomplishments", "Professional Experience", 
-                          "Education & Training", "Certifications", "Community Involvement"]
-        
+        # Smart detection: Find paragraphs that should be centered
+        # Look for short lines, headers, or lines that appear to be titles
         for p in soup.find_all('p'):
             text = p.get_text().strip()
             
-            # Check if this paragraph should be centered
-            for keyword in center_keywords:
-                if keyword in text:
-                    p['class'] = p.get('class', []) + ['center-text']
+            if text:
+                # Detect if this should be centered (short lines, likely headers)
+                words = text.split()
+                is_likely_header = (
+                    len(words) <= 6 or  # Short lines
+                    any(word.isupper() for word in words) or  # Has uppercase words
+                    text.endswith(':') or  # Ends with colon
+                    any(keyword in text for keyword in ['Donald Gardner', 'Key', 'Professional', 'Education', 'Certifications', 'Community', '425', 'gmail', 'LinkedIn', 'YouTube'])
+                )
+                
+                if is_likely_header:
+                    p['class'] = p.get('class', []) + ['centered-content']
+                    
+                    # Special case for name
                     if "Donald Gardner" in text:
                         p['class'] = p.get('class', []) + ['name-header']
-                    elif "(425) 245-4899" in text or "Donald.gardner4321@gmail.com" in text or "LinkedIn" in text or "YouTube" in text:
-                        p['class'] = p.get('class', []) + ['contact-info']
-                    elif any(section in text for section in ["Key Accomplishments", "Professional Experience", "Education", "Certifications", "Community"]):
-                        p['class'] = p.get('class', []) + ['section-header']
-                    break
         
-        # Get the modified HTML
+        # Get modified HTML
         modified_html = str(soup)
         
-        # Create final HTML with updated CSS
+        # Create final HTML with Calibri and proper sizing
         final_html = f'''<!DOCTYPE html>
         <html lang="en">
         <head>
@@ -68,7 +68,7 @@ jobs:
             <title>Donald Gardner - Resume</title>
             <style>
                 body {{
-                    font-family: 'Segoe UI', Arial, sans-serif;
+                    font-family: Calibri, 'Segoe UI', Arial, sans-serif;
                     max-width: 800px;
                     margin: 0 auto;
                     padding: 30px 20px;
@@ -85,53 +85,37 @@ jobs:
                     border: 1px solid #ddd;
                 }}
                 
+                /* Default styling - 11pt Calibri for everything */
+                p, div, span, li, ul, ol {{
+                    font-size: 11pt !important;
+                    font-family: Calibri, 'Segoe UI', Arial, sans-serif !important;
+                    margin-bottom: 8px;
+                }}
+                
+                /* Name header - 16pt Calibri */
                 .name-header {{
                     text-align: center !important;
-                    font-size: 2.2em !important;
+                    font-size: 16pt !important;
                     font-weight: bold !important;
                     color: #2c3e50 !important;
                     margin-bottom: 15px !important;
-                    font-variant: small-caps !important;
-                    letter-spacing: 2px !important;
+                    font-family: Calibri, 'Segoe UI', Arial, sans-serif !important;
                 }}
                 
-                .contact-info {{
+                /* Any centered content gets small caps */
+                .centered-content {{
                     text-align: center !important;
-                    font-size: 14px !important;
-                    color: #555 !important;
-                    margin: 10px 0 !important;
-                    font-family: 'Segoe UI', Arial, sans-serif !important;
-                }}
-                
-                .section-header {{
-                    text-align: center !important;
-                    font-size: 1.3em !important;
-                    font-weight: bold !important;
-                    color: #2c3e50 !important;
-                    margin-top: 35px !important;
-                    margin-bottom: 20px !important;
-                    padding-bottom: 8px !important;
                     font-variant: small-caps !important;
                     letter-spacing: 1px !important;
-                }}
-                
-                .center-text {{
-                    text-align: center !important;
                     margin: 15px 0 !important;
-                    font-size: 14px !important;
-                    font-family: 'Segoe UI', Arial, sans-serif !important;
+                    font-weight: 600 !important;
+                    color: #2c3e50 !important;
                 }}
                 
-                p {{
-                    margin-bottom: 12px;
-                    font-size: 14px !important;
-                    font-family: 'Segoe UI', Arial, sans-serif !important;
-                }}
-                
-                /* Ensure all paragraphs have consistent styling */
-                p, div, span {{
-                    font-size: 14px !important;
-                    font-family: 'Segoe UI', Arial, sans-serif !important;
+                /* Override small caps for name (keep it normal caps) */
+                .name-header.centered-content {{
+                    font-variant: normal !important;
+                    letter-spacing: 2px !important;
                 }}
                 
                 strong {{
@@ -145,10 +129,8 @@ jobs:
                 }}
                 
                 li {{
-                    margin-bottom: 6px;
-                    line-height: 1.5;
-                    font-size: 14px !important;
-                    font-family: 'Segoe UI', Arial, sans-serif !important;
+                    margin-bottom: 4px;
+                    line-height: 1.4;
                 }}
                 
                 a {{
@@ -171,9 +153,11 @@ jobs:
         with open("index.html", "w", encoding="utf-8") as f:
             f.write(final_html)
         
-        print("✅ HTML created with consistent font styling")
-        print("Modified HTML preview:")
-        print(modified_html[:300])
+        print("✅ Smart styling applied:")
+        print("  - Auto-detected centered content")
+        print("  - Donald Gardner: 16pt Calibri")
+        print("  - Everything else: 11pt Calibri")
+        print("  - All centered lines: small caps")
         EOF
         
     - name: Upload to S3 and Invalidate CloudFront
