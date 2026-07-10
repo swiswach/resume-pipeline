@@ -1,5 +1,7 @@
 name: Update Resume Website
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -8,28 +10,68 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Check files
-      run: |
-        ls -la
-        echo "Looking for resume.docx..."
-        
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.x'
         
     - name: Install dependencies
-      run: pip install python-docx mammoth beautifulsoup4
-      
-    - name: Test conversion
       run: |
-        python3 -c "
+        pip install python-docx mammoth beautifulsoup4 boto3
+        
+    - name: Convert docx to HTML
+      run: |
+        python3 << 'EOF'
         import mammoth
-        print('Mammoth imported successfully')
-        import os
-        if os.path.exists('resume.docx'):
-            print('resume.docx found!')
-        else:
-            print('resume.docx NOT found!')
-            print('Files in directory:', os.listdir('.'))
-        "
+        import boto3
+        
+        # Convert docx to HTML using mammoth (better conversion)
+        with open("resume.docx", "rb") as docx_file:
+            result = mammoth.convert_to_html(docx_file)
+            html_content = result.value
+            
+        # Create full HTML page
+        full_html = f"""<!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Resume</title>
+            <style>
+                body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }}
+            </style>
+        </head>
+        <body>
+            {html_content}
+        </body>
+        </html>"""
+        
+        # Save to file
+        with open("index.html", "w", encoding="utf-8") as f:
+            f.write(full_html)
+            
+        print("✅ Conversion completed successfully")
+        EOF
+        
+    - name: Upload to S3
+      run: |
+        python3 << 'EOF'
+        import boto3
+        
+        s3 = boto3.client('s3')
+        
+        with open('index.html', 'r', encoding='utf-8') as f:
+            content = f.read()
+            
+        s3.put_object(
+            Bucket='${{ secrets.S3_BUCKET }}',
+            Key='index.html',
+            Body=content,
+            ContentType='text/html'
+        )
+        print("✅ Uploaded to S3 successfully")
+        EOF
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: us-east-1
