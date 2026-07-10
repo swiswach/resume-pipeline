@@ -113,4 +113,61 @@ jobs:
                     margin-top: 30px;
                     margin-bottom: 20px;
                     border-bottom: 2px solid #3498db;
-             
+                    padding-bottom: 8px;
+                }}
+                
+                /* Links */
+                a {{
+                    color: #3498db;
+                    text-decoration: none;
+                }}
+                
+                a:hover {{
+                    text-decoration: underline;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="resume-container">
+                {raw_html}
+            </div>
+        </body>
+        </html>'''
+        
+        with open("index.html", "w", encoding="utf-8") as f:
+            f.write(styled_html)
+        
+        print("✅ HTML created with Mammoth + debug CSS")
+        print(f"Total HTML length: {len(styled_html)} characters")
+        EOF
+        
+    - name: Upload to S3 and Invalidate CloudFront
+      run: |
+        python3 << 'EOF'
+        import boto3
+        import time
+        
+        s3 = boto3.client('s3')
+        with open('index.html', 'r', encoding='utf-8') as f:
+            s3.put_object(
+                Bucket='cloud-challenge01',
+                Key='index.html',
+                Body=f.read(),
+                ContentType='text/html'
+            )
+        print("✅ Uploaded to S3")
+        
+        cloudfront = boto3.client('cloudfront')
+        cloudfront.create_invalidation(
+            DistributionId='E1D217O0NBRUC2',
+            InvalidationBatch={
+                'Paths': {'Quantity': 1, 'Items': ['/*']},
+                'CallerReference': f'auto-{int(time.time())}'
+            }
+        )
+        print("✅ CloudFront invalidated")
+        EOF
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: us-east-1
