@@ -23,6 +23,68 @@ jobs:
       run: |
         python3 << 'EOF'
         import mammoth
+        
+        with open("resume.docx", "rb") as docx_file:
+            result = mammoth.convert_to_html(docx_file)
+            html_content = result.value
+            
+        # Enhanced CSS styling
+        full_html = f"""<!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Resume</title>
+            <style>
+                body {{ 
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    max-width: 800px; 
+                    margin: 0 auto; 
+                    padding: 40px 20px;
+                    line-height: 1.6;
+                    color: #333;
+                }}
+                h1 {{ 
+                    color: #2c3e50; 
+                    border-bottom: 3px solid #3498db; 
+                    padding-bottom: 10px;
+                    margin-bottom: 30px;
+                }}
+                h2 {{ 
+                    color: #34495e; 
+                    margin-top: 30px;
+                    margin-bottom: 15px;
+                }}
+                h3 {{ 
+                    color: #7f8c8d; 
+                    margin-bottom: 10px;
+                }}
+                p {{ margin-bottom: 15px; }}
+                ul {{ margin-left: 20px; }}
+                li {{ margin-bottom: 8px; }}
+                strong {{ color: #2c3e50; }}
+                .contact {{ 
+                    text-align: center; 
+                    margin-bottom: 30px;
+                    padding: 20px;
+                    background-color: #f8f9fa;
+                    border-radius: 8px;
+                }}
+            </style>
+        </head>
+        <body>
+            {html_content}
+        </body>
+        </html>"""
+        
+        with open("index.html", "w", encoding="utf-8") as f:
+            f.write(full_html)
+            
+        print("✅ Conversion completed with enhanced CSS")
+        EOF
+      run: |
+        python3 << 'EOF'
+        import mammoth
         import boto3
         
         # Convert docx to HTML using mammoth (better conversion)
