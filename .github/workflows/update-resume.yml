@@ -18,34 +18,56 @@ jobs:
     - name: Install dependencies
       run: pip install mammoth boto3 beautifulsoup4
         
-    - name: Convert Preserving Original Formatting
+    - name: Convert with Precise Alignment Detection
       run: |
         python3 << 'EOF'
         import mammoth
         from bs4 import BeautifulSoup
         
-        # Convert with Mammoth - preserve original formatting
+        # Convert with Mammoth
         with open("resume.docx", "rb") as docx_file:
             result = mammoth.convert_to_html(docx_file)
             raw_html = result.value
         
-        print("=== Preserving original Word formatting ===")
-        print("Raw HTML preview:")
-        print(raw_html[:400])
+        print("=== Applying precise alignment based on typical resume structure ===")
         
-        # Parse HTML but DON'T modify alignment - just add font styling
+        # Parse HTML
         soup = BeautifulSoup(raw_html, 'html.parser')
         
-        # Only identify Donald Gardner for special font size (no alignment changes)
+        # Precise detection based on what's typically centered in resumes
         for p in soup.find_all('p'):
             text = p.get_text().strip()
-            if "Donald Gardner" in text:
-                p['class'] = p.get('class', []) + ['name-header']
+            
+            if text:
+                # Only center these specific types of content
+                should_center = False
+                
+                # Name header
+                if "Donald Gardner" in text:
+                    should_center = True
+                    p['class'] = p.get('class', []) + ['name-header']
+                
+                # Contact info line
+                elif any(contact in text for contact in ['425', 'gmail.com', 'LinkedIn', 'YouTube']) and len(text) < 100:
+                    should_center = True
+                    p['class'] = p.get('class', []) + ['contact-info']
+                
+                # Section headers (short lines with key words)
+                elif (len(text.split()) <= 3 and 
+                      any(keyword in text for keyword in ['Key Accomplishments', 'Professional Experience', 'Education', 'Certifications', 'Community'])):
+                    should_center = True
+                    p['class'] = p.get('class', []) + ['section-header']
+                
+                if should_center:
+                    p['class'] = p.get('class', []) + ['centered-content']
+                    print(f"CENTERING: '{text}'")
+                else:
+                    print(f"LEFT: '{text[:50]}...'")
         
-        # Get modified HTML (minimal changes)
+        # Get modified HTML
         modified_html = str(soup)
         
-        # Create final HTML - preserve all original formatting, only change fonts
+        # Create final HTML with proper alignment and spacing
         final_html = f'''<!DOCTYPE html>
         <html lang="en">
         <head>
@@ -60,6 +82,7 @@ jobs:
                     padding: 30px 20px;
                     background: #f5f5f5;
                     color: #333;
+                    line-height: 1.2;
                 }}
                 
                 .resume-container {{
@@ -70,29 +93,53 @@ jobs:
                     border: 1px solid #ddd;
                 }}
                 
-                /* Default styling - 11pt Calibri, preserve all original formatting */
-                p, div, span, li, ul, ol {{
+                /* Default - 11pt Calibri, left aligned, minimal spacing */
+                p, div, span {{
                     font-size: 11pt !important;
                     font-family: Calibri, 'Segoe UI', Arial, sans-serif !important;
-                    /* DO NOT override margins, alignment, or spacing */
+                    margin: 0 0 6px 0 !important;
+                    text-align: left !important;
                 }}
                 
-                /* Only Donald Gardner gets 16pt */
+                /* Name header - 16pt, centered */
                 .name-header {{
                     font-size: 16pt !important;
-                    font-family: Calibri, 'Segoe UI', Arial, sans-serif !important;
                     font-weight: bold !important;
                     color: #2c3e50 !important;
-                    /* Keep original alignment from Word */
+                    margin-bottom: 8px !important;
                 }}
                 
-                /* Preserve original spacing for lists */
+                /* Centered content */
+                .centered-content {{
+                    text-align: center !important;
+                }}
+                
+                /* Section headers get small caps */
+                .section-header {{
+                    font-variant: small-caps !important;
+                    letter-spacing: 1px !important;
+                    font-weight: 600 !important;
+                    color: #2c3e50 !important;
+                    margin: 20px 0 15px 0 !important;
+                }}
+                
+                /* Contact info styling */
+                .contact-info {{
+                    color: #555 !important;
+                    margin: 5px 0 !important;
+                }}
+                
+                /* Lists - single spaced */
                 ul, ol {{
-                    /* Don't override margins - use Word's spacing */
+                    margin: 5px 0 10px 25px !important;
+                    padding: 0 !important;
                 }}
                 
                 li {{
-                    /* Don't override margins - use Word's spacing */
+                    font-size: 11pt !important;
+                    font-family: Calibri, 'Segoe UI', Arial, sans-serif !important;
+                    margin: 0 0 2px 0 !important;
+                    line-height: 1.2 !important;
                 }}
                 
                 strong {{
@@ -120,8 +167,7 @@ jobs:
         with open("index.html", "w", encoding="utf-8") as f:
             f.write(final_html)
         
-        print("✅ Formatting preserved from Word document")
-        print("✅ Only fonts changed: Donald Gardner 16pt, everything else 11pt Calibri")
+        print("✅ Precise alignment applied with single spacing")
         EOF
         
     - name: Upload to S3 and Invalidate CloudFront
