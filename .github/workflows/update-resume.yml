@@ -37,7 +37,8 @@ jobs:
         soup = BeautifulSoup(raw_html, 'html.parser')
         
         # Find and modify specific content
-        center_keywords = ["Donald Gardner", "Key Accomplishments", "Professional Experience", 
+        center_keywords = ["Donald Gardner", "(425) 245-4899", "Donald.gardner4321@gmail.com", 
+                          "LinkedIn", "YouTube", "Key Accomplishments", "Professional Experience", 
                           "Education & Training", "Certifications", "Community Involvement"]
         
         for p in soup.find_all('p'):
@@ -49,6 +50,8 @@ jobs:
                     p['class'] = p.get('class', []) + ['center-text']
                     if "Donald Gardner" in text:
                         p['class'] = p.get('class', []) + ['name-header']
+                    elif "(425) 245-4899" in text or "Donald.gardner4321@gmail.com" in text or "LinkedIn" in text or "YouTube" in text:
+                        p['class'] = p.get('class', []) + ['contact-info']
                     elif any(section in text for section in ["Key Accomplishments", "Professional Experience", "Education", "Certifications", "Community"]):
                         p['class'] = p.get('class', []) + ['section-header']
                     break
@@ -56,7 +59,7 @@ jobs:
         # Get the modified HTML
         modified_html = str(soup)
         
-        # Create final HTML with proper CSS
+        # Create final HTML with updated CSS
         final_html = f'''<!DOCTYPE html>
         <html lang="en">
         <head>
@@ -90,15 +93,23 @@ jobs:
                     margin-bottom: 15px !important;
                 }}
                 
+                .contact-info {{
+                    text-align: center !important;
+                    font-size: 1.1em !important;
+                    color: #555 !important;
+                    margin: 10px 0 !important;
+                }}
+                
                 .section-header {{
                     text-align: center !important;
-                    font-size: 1.5em !important;
+                    font-size: 1.3em !important;
                     font-weight: bold !important;
                     color: #2c3e50 !important;
                     margin-top: 35px !important;
                     margin-bottom: 20px !important;
                     padding-bottom: 8px !important;
-                    border-bottom: 2px solid #3498db !important;
+                    font-variant: small-caps !important;
+                    letter-spacing: 1px !important;
                 }}
                 
                 .center-text {{
@@ -146,7 +157,7 @@ jobs:
         with open("index.html", "w", encoding="utf-8") as f:
             f.write(final_html)
         
-        print("✅ HTML created with targeted modifications")
+        print("✅ HTML created with updated styling")
         print("Modified HTML preview:")
         print(modified_html[:300])
         EOF
