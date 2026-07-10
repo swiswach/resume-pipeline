@@ -16,39 +16,48 @@ jobs:
         python-version: '3.x'
         
     - name: Install dependencies
-      run: pip install mammoth boto3
+      run: pip install mammoth boto3 beautifulsoup4
         
-    - name: Convert with Mammoth and Debug HTML Structure
+    - name: Convert and Fix HTML Structure
       run: |
         python3 << 'EOF'
         import mammoth
+        from bs4 import BeautifulSoup
         
-        # Convert docx to HTML with Mammoth
+        # Convert with Mammoth
         with open("resume.docx", "rb") as docx_file:
             result = mammoth.convert_to_html(docx_file)
             raw_html = result.value
         
-        print("=== MAMMOTH HTML STRUCTURE DEBUG ===")
-        print("First 800 characters of HTML:")
-        print(raw_html[:800])
-        print("\n=== LOOKING FOR SPECIFIC ELEMENTS ===")
+        print("=== RAW MAMMOTH OUTPUT ===")
+        print(raw_html[:500])
+        print("=" * 50)
         
-        # Check what HTML elements Mammoth creates
-        if "<h1>" in raw_html:
-            print("✅ Found H1 tags")
-        if "<h2>" in raw_html:
-            print("✅ Found H2 tags")
-        if "<strong>" in raw_html:
-            print("✅ Found STRONG tags")
-        if "<ul>" in raw_html:
-            print("✅ Found UL (bullet lists)")
-        if "<li>" in raw_html:
-            print("✅ Found LI (list items)")
-        if "<p>" in raw_html:
-            print("✅ Found P (paragraphs)")
+        # Parse and modify the HTML
+        soup = BeautifulSoup(raw_html, 'html.parser')
         
-        # Create HTML with CSS that targets what Mammoth actually creates
-        styled_html = f'''<!DOCTYPE html>
+        # Find and modify specific content
+        center_keywords = ["Donald Gardner", "Key Accomplishments", "Professional Experience", 
+                          "Education & Training", "Certifications", "Community Involvement"]
+        
+        for p in soup.find_all('p'):
+            text = p.get_text().strip()
+            
+            # Check if this paragraph should be centered
+            for keyword in center_keywords:
+                if keyword in text:
+                    p['class'] = p.get('class', []) + ['center-text']
+                    if "Donald Gardner" in text:
+                        p['class'] = p.get('class', []) + ['name-header']
+                    elif any(section in text for section in ["Key Accomplishments", "Professional Experience", "Education", "Certifications", "Community"]):
+                        p['class'] = p.get('class', []) + ['section-header']
+                    break
+        
+        # Get the modified HTML
+        modified_html = str(soup)
+        
+        # Create final HTML with proper CSS
+        final_html = f'''<!DOCTYPE html>
         <html lang="en">
         <head>
             <meta charset="UTF-8">
@@ -56,11 +65,11 @@ jobs:
             <title>Donald Gardner - Resume</title>
             <style>
                 body {{
-                    font-family: Arial, sans-serif;
+                    font-family: 'Segoe UI', Arial, sans-serif;
                     max-width: 800px;
-                    margin: 20px auto;
-                    padding: 30px;
-                    background: #f8f9fa;
+                    margin: 0 auto;
+                    padding: 30px 20px;
+                    background: #f5f5f5;
                     color: #333;
                     line-height: 1.6;
                 }}
@@ -68,55 +77,55 @@ jobs:
                 .resume-container {{
                     background: white;
                     padding: 40px;
-                    border-radius: 8px;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                    border-radius: 10px;
+                    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+                    border: 1px solid #ddd;
                 }}
                 
-                /* Target what Mammoth actually creates */
+                .name-header {{
+                    text-align: center !important;
+                    font-size: 2.2em !important;
+                    font-weight: bold !important;
+                    color: #2c3e50 !important;
+                    margin-bottom: 15px !important;
+                }}
+                
+                .section-header {{
+                    text-align: center !important;
+                    font-size: 1.5em !important;
+                    font-weight: bold !important;
+                    color: #2c3e50 !important;
+                    margin-top: 35px !important;
+                    margin-bottom: 20px !important;
+                    padding-bottom: 8px !important;
+                    border-bottom: 2px solid #3498db !important;
+                }}
+                
+                .center-text {{
+                    text-align: center !important;
+                    margin: 15px 0 !important;
+                }}
+                
                 p {{
                     margin-bottom: 12px;
+                    font-size: 14px;
                 }}
                 
-                /* Center specific content */
-                p:first-child {{
-                    text-align: center;
-                    font-size: 1.8em;
-                    font-weight: bold;
-                    color: #2c3e50;
-                    margin-bottom: 10px;
-                }}
-                
-                /* Style strong text (likely job titles, section headers) */
                 strong {{
                     color: #2c3e50;
                     font-weight: 600;
                 }}
                 
-                /* Style lists */
                 ul {{
                     margin-left: 25px;
-                    margin-bottom: 20px;
+                    margin-bottom: 15px;
                 }}
                 
                 li {{
-                    margin-bottom: 8px;
+                    margin-bottom: 6px;
+                    line-height: 1.5;
                 }}
                 
-                /* Try to center section headers containing these words */
-                p:has(strong):contains("Key Accomplishments"),
-                p:has(strong):contains("Professional Experience"),
-                p:has(strong):contains("Education"),
-                p:has(strong):contains("Certifications"),
-                p:has(strong):contains("Community") {{
-                    text-align: center;
-                    font-size: 1.4em;
-                    margin-top: 30px;
-                    margin-bottom: 20px;
-                    border-bottom: 2px solid #3498db;
-                    padding-bottom: 8px;
-                }}
-                
-                /* Links */
                 a {{
                     color: #3498db;
                     text-decoration: none;
@@ -129,16 +138,17 @@ jobs:
         </head>
         <body>
             <div class="resume-container">
-                {raw_html}
+                {modified_html}
             </div>
         </body>
         </html>'''
         
         with open("index.html", "w", encoding="utf-8") as f:
-            f.write(styled_html)
+            f.write(final_html)
         
-        print("✅ HTML created with Mammoth + debug CSS")
-        print(f"Total HTML length: {len(styled_html)} characters")
+        print("✅ HTML created with targeted modifications")
+        print("Modified HTML preview:")
+        print(modified_html[:300])
         EOF
         
     - name: Upload to S3 and Invalidate CloudFront
