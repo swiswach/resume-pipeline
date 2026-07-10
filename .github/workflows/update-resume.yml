@@ -18,24 +18,14 @@ jobs:
     - name: Install dependencies
       run: pip install python-docx boto3
         
-    - name: Convert and Debug HTML Structure
+    - name: Convert with Professional Styling
       run: |
         python3 << 'EOF'
         from docx import Document
         
-        # Load document and extract content
         doc = Document("resume.docx")
         
-        print("=== DOCUMENT STRUCTURE DEBUG ===")
-        for i, paragraph in enumerate(doc.paragraphs[:10]):  # First 10 paragraphs
-            text = paragraph.text.strip()
-            if text:
-                print(f"Paragraph {i}: '{text[:50]}...'")
-                print(f"  Style: {paragraph.style.name}")
-                print(f"  Alignment: {paragraph.alignment}")
-                print("---")
-        
-        # Create simple HTML with forced centering
+        # Build HTML with proper styling
         html_parts = []
         center_items = ["Donald Gardner", "(425) 245-4899", "Key Accomplishments", 
                        "Professional Experience", "Education & Training", 
@@ -44,78 +34,35 @@ jobs:
         for paragraph in doc.paragraphs:
             text = paragraph.text.strip()
             if text:
-                # Check if this text should be centered
                 should_center = any(item in text for item in center_items)
                 
-                if should_center:
-                    html_parts.append(f'<div style="text-align: center; font-weight: bold; margin: 20px 0;">{text}</div>')
+                if "Donald Gardner" in text:
+                    html_parts.append(f'<h1 class="name">{text}</h1>')
+                elif should_center and any(header in text for header in ["Key Accomplishments", "Professional Experience", "Education & Training", "Certifications", "Community Involvement"]):
+                    html_parts.append(f'<h2 class="section-header">{text}</h2>')
+                elif should_center:
+                    html_parts.append(f'<p class="contact-info">{text}</p>')
                 else:
-                    html_parts.append(f'<div style="margin: 10px 0;">{text}</div>')
+                    html_parts.append(f'<p class="content">{text}</p>')
         
-        # Simple HTML with inline styles (guaranteed to work)
+        # Professional HTML with full styling
         html = f'''<!DOCTYPE html>
-        <html>
+        <html lang="en">
         <head>
             <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Donald Gardner - Resume</title>
             <style>
                 body {{ 
-                    font-family: Arial, sans-serif; 
-                    max-width: 800px; 
-                    margin: 20px auto; 
-                    padding: 30px;
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    max-width: 800px;
+                    margin: 0 auto;
+                    padding: 40px 20px;
                     background: #f8f9fa;
+                    color: #333;
+                    line-height: 1.6;
                 }}
-                .container {{ 
-                    background: white; 
-                    padding: 40px; 
-                    border-radius: 8px; 
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-                }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                {"".join(html_parts)}
-            </div>
-        </body>
-        </html>'''
-        
-        with open("index.html", "w", encoding="utf-8") as f:
-            f.write(html)
-        
-        print("=== HTML PREVIEW ===")
-        print(html[:500])
-        print("✅ HTML created with debug info")
-        EOF
-        
-    - name: Upload to S3 and Invalidate CloudFront
-      run: |
-        python3 << 'EOF'
-        import boto3
-        import time
-        
-        s3 = boto3.client('s3')
-        with open('index.html', 'r', encoding='utf-8') as f:
-            s3.put_object(
-                Bucket='cloud-challenge01',
-                Key='index.html',
-                Body=f.read(),
-                ContentType='text/html'
-            )
-        print("✅ Uploaded to S3")
-        
-        cloudfront = boto3.client('cloudfront')
-        cloudfront.create_invalidation(
-            DistributionId='E1D217O0NBRUC2',
-            InvalidationBatch={
-                'Paths': {'Quantity': 1, 'Items': ['/*']},
-                'CallerReference': f'auto-{int(time.time())}'
-            }
-        )
-        print("✅ CloudFront invalidated")
-        EOF
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_DEFAULT_REGION: us-east-1
+                
+                .resume-container {{
+                    background: white;
+                    padding: 40px;
