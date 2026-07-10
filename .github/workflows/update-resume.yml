@@ -91,13 +91,16 @@ jobs:
                     font-weight: bold !important;
                     color: #2c3e50 !important;
                     margin-bottom: 15px !important;
+                    font-variant: small-caps !important;
+                    letter-spacing: 2px !important;
                 }}
                 
                 .contact-info {{
                     text-align: center !important;
-                    font-size: 1.1em !important;
+                    font-size: 14px !important;
                     color: #555 !important;
                     margin: 10px 0 !important;
+                    font-family: 'Segoe UI', Arial, sans-serif !important;
                 }}
                 
                 .section-header {{
@@ -115,11 +118,20 @@ jobs:
                 .center-text {{
                     text-align: center !important;
                     margin: 15px 0 !important;
+                    font-size: 14px !important;
+                    font-family: 'Segoe UI', Arial, sans-serif !important;
                 }}
                 
                 p {{
                     margin-bottom: 12px;
-                    font-size: 14px;
+                    font-size: 14px !important;
+                    font-family: 'Segoe UI', Arial, sans-serif !important;
+                }}
+                
+                /* Ensure all paragraphs have consistent styling */
+                p, div, span {{
+                    font-size: 14px !important;
+                    font-family: 'Segoe UI', Arial, sans-serif !important;
                 }}
                 
                 strong {{
@@ -135,6 +147,8 @@ jobs:
                 li {{
                     margin-bottom: 6px;
                     line-height: 1.5;
+                    font-size: 14px !important;
+                    font-family: 'Segoe UI', Arial, sans-serif !important;
                 }}
                 
                 a {{
@@ -157,7 +171,7 @@ jobs:
         with open("index.html", "w", encoding="utf-8") as f:
             f.write(final_html)
         
-        print("✅ HTML created with updated styling")
+        print("✅ HTML created with consistent font styling")
         print("Modified HTML preview:")
         print(modified_html[:300])
         EOF
