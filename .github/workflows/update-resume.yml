@@ -16,48 +16,50 @@ jobs:
         python-version: '3.x'
         
     - name: Install dependencies
-      run: pip install python-docx boto3
+      run: pip install mammoth boto3
         
-    - name: Convert with Professional Styling
+    - name: Convert with Mammoth and Debug HTML Structure
       run: |
         python3 << 'EOF'
-        from docx import Document
+        import mammoth
         
-        doc = Document("resume.docx")
+        # Convert docx to HTML with Mammoth
+        with open("resume.docx", "rb") as docx_file:
+            result = mammoth.convert_to_html(docx_file)
+            raw_html = result.value
         
-        # Build HTML with proper styling
-        html_parts = []
-        center_items = ["Donald Gardner", "(425) 245-4899", "Key Accomplishments", 
-                       "Professional Experience", "Education & Training", 
-                       "Certifications", "Community Involvement"]
+        print("=== MAMMOTH HTML STRUCTURE DEBUG ===")
+        print("First 800 characters of HTML:")
+        print(raw_html[:800])
+        print("\n=== LOOKING FOR SPECIFIC ELEMENTS ===")
         
-        for paragraph in doc.paragraphs:
-            text = paragraph.text.strip()
-            if text:
-                should_center = any(item in text for item in center_items)
-                
-                if "Donald Gardner" in text:
-                    html_parts.append(f'<h1 class="name">{text}</h1>')
-                elif should_center and any(header in text for header in ["Key Accomplishments", "Professional Experience", "Education & Training", "Certifications", "Community Involvement"]):
-                    html_parts.append(f'<h2 class="section-header">{text}</h2>')
-                elif should_center:
-                    html_parts.append(f'<p class="contact-info">{text}</p>')
-                else:
-                    html_parts.append(f'<p class="content">{text}</p>')
+        # Check what HTML elements Mammoth creates
+        if "<h1>" in raw_html:
+            print("✅ Found H1 tags")
+        if "<h2>" in raw_html:
+            print("✅ Found H2 tags")
+        if "<strong>" in raw_html:
+            print("✅ Found STRONG tags")
+        if "<ul>" in raw_html:
+            print("✅ Found UL (bullet lists)")
+        if "<li>" in raw_html:
+            print("✅ Found LI (list items)")
+        if "<p>" in raw_html:
+            print("✅ Found P (paragraphs)")
         
-        # Professional HTML with full styling
-        html = f'''<!DOCTYPE html>
+        # Create HTML with CSS that targets what Mammoth actually creates
+        styled_html = f'''<!DOCTYPE html>
         <html lang="en">
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Donald Gardner - Resume</title>
             <style>
-                body {{ 
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                body {{
+                    font-family: Arial, sans-serif;
                     max-width: 800px;
-                    margin: 0 auto;
-                    padding: 40px 20px;
+                    margin: 20px auto;
+                    padding: 30px;
                     background: #f8f9fa;
                     color: #333;
                     line-height: 1.6;
@@ -66,64 +68,31 @@ jobs:
                 .resume-container {{
                     background: white;
                     padding: 40px;
-                    border-radius: 12px;
-                    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-                    border: 1px solid #e9ecef;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
                 }}
                 
-                .name {{
-                    text-align: center;
-                    color: #2c3e50;
-                    font-size: 2.5em;
-                    margin-bottom: 15px;
-                    font-weight: 700;
-                    letter-spacing: 1px;
+                /* Target what Mammoth actually creates */
+                p {{
+                    margin-bottom: 12px;
                 }}
                 
-                .contact-info {{
+                /* Center specific content */
+                p:first-child {{
                     text-align: center;
-                    font-size: 1.1em;
-                    color: #555;
-                    margin-bottom: 35px;
-                    font-weight: 500;
-                }}
-                
-                .section-header {{
-                    text-align: center;
-                    color: #2c3e50;
                     font-size: 1.8em;
-                    margin-top: 40px;
-                    margin-bottom: 25px;
-                    padding-bottom: 10px;
-                    border-bottom: 3px solid #3498db;
-                    font-weight: 600;
-                }}
-                
-                .content {{
-                    margin-bottom: 15px;
-                    font-size: 16px;
-                    text-align: justify;
-                    color: #444;
-                }}
-                
-                h1, h2, h3 {{
+                    font-weight: bold;
                     color: #2c3e50;
+                    margin-bottom: 10px;
                 }}
                 
+                /* Style strong text (likely job titles, section headers) */
                 strong {{
                     color: #2c3e50;
                     font-weight: 600;
                 }}
                 
-                a {{
-                    color: #3498db;
-                    text-decoration: none;
-                }}
-                
-                a:hover {{
-                    text-decoration: underline;
-                }}
-                
+                /* Style lists */
                 ul {{
                     margin-left: 25px;
                     margin-bottom: 20px;
@@ -131,50 +100,17 @@ jobs:
                 
                 li {{
                     margin-bottom: 8px;
-                    line-height: 1.5;
                 }}
-            </style>
-        </head>
-        <body>
-            <div class="resume-container">
-                {"".join(html_parts)}
-            </div>
-        </body>
-        </html>'''
-        
-        with open("index.html", "w", encoding="utf-8") as f:
-            f.write(html)
-        
-        print("✅ Professional HTML created with full styling")
-        EOF
-        
-    - name: Upload to S3 and Invalidate CloudFront
-      run: |
-        python3 << 'EOF'
-        import boto3
-        import time
-        
-        s3 = boto3.client('s3')
-        with open('index.html', 'r', encoding='utf-8') as f:
-            s3.put_object(
-                Bucket='cloud-challenge01',
-                Key='index.html',
-                Body=f.read(),
-                ContentType='text/html'
-            )
-        print("✅ Uploaded to S3")
-        
-        cloudfront = boto3.client('cloudfront')
-        cloudfront.create_invalidation(
-            DistributionId='E1D217O0NBRUC2',
-            InvalidationBatch={
-                'Paths': {'Quantity': 1, 'Items': ['/*']},
-                'CallerReference': f'auto-{int(time.time())}'
-            }
-        )
-        print("✅ CloudFront invalidated")
-        EOF
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_DEFAULT_REGION: us-east-1
+                
+                /* Try to center section headers containing these words */
+                p:has(strong):contains("Key Accomplishments"),
+                p:has(strong):contains("Professional Experience"),
+                p:has(strong):contains("Education"),
+                p:has(strong):contains("Certifications"),
+                p:has(strong):contains("Community") {{
+                    text-align: center;
+                    font-size: 1.4em;
+                    margin-top: 30px;
+                    margin-bottom: 20px;
+                    border-bottom: 2px solid #3498db;
+             
