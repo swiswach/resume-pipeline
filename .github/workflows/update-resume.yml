@@ -18,48 +18,34 @@ jobs:
     - name: Install dependencies
       run: pip install mammoth boto3 beautifulsoup4
         
-    - name: Convert and Apply Smart Styling
+    - name: Convert Preserving Original Formatting
       run: |
         python3 << 'EOF'
         import mammoth
         from bs4 import BeautifulSoup
         
-        # Convert with Mammoth
+        # Convert with Mammoth - preserve original formatting
         with open("resume.docx", "rb") as docx_file:
             result = mammoth.convert_to_html(docx_file)
             raw_html = result.value
         
-        print("=== Processing HTML with smart detection ===")
+        print("=== Preserving original Word formatting ===")
+        print("Raw HTML preview:")
+        print(raw_html[:400])
         
-        # Parse HTML
+        # Parse HTML but DON'T modify alignment - just add font styling
         soup = BeautifulSoup(raw_html, 'html.parser')
         
-        # Smart detection: Find paragraphs that should be centered
-        # Look for short lines, headers, or lines that appear to be titles
+        # Only identify Donald Gardner for special font size (no alignment changes)
         for p in soup.find_all('p'):
             text = p.get_text().strip()
-            
-            if text:
-                # Detect if this should be centered (short lines, likely headers)
-                words = text.split()
-                is_likely_header = (
-                    len(words) <= 6 or  # Short lines
-                    any(word.isupper() for word in words) or  # Has uppercase words
-                    text.endswith(':') or  # Ends with colon
-                    any(keyword in text for keyword in ['Donald Gardner', 'Key', 'Professional', 'Education', 'Certifications', 'Community', '425', 'gmail', 'LinkedIn', 'YouTube'])
-                )
-                
-                if is_likely_header:
-                    p['class'] = p.get('class', []) + ['centered-content']
-                    
-                    # Special case for name
-                    if "Donald Gardner" in text:
-                        p['class'] = p.get('class', []) + ['name-header']
+            if "Donald Gardner" in text:
+                p['class'] = p.get('class', []) + ['name-header']
         
-        # Get modified HTML
+        # Get modified HTML (minimal changes)
         modified_html = str(soup)
         
-        # Create final HTML with Calibri and proper sizing
+        # Create final HTML - preserve all original formatting, only change fonts
         final_html = f'''<!DOCTYPE html>
         <html lang="en">
         <head>
@@ -74,7 +60,6 @@ jobs:
                     padding: 30px 20px;
                     background: #f5f5f5;
                     color: #333;
-                    line-height: 1.6;
                 }}
                 
                 .resume-container {{
@@ -85,52 +70,34 @@ jobs:
                     border: 1px solid #ddd;
                 }}
                 
-                /* Default styling - 11pt Calibri for everything */
+                /* Default styling - 11pt Calibri, preserve all original formatting */
                 p, div, span, li, ul, ol {{
                     font-size: 11pt !important;
                     font-family: Calibri, 'Segoe UI', Arial, sans-serif !important;
-                    margin-bottom: 8px;
+                    /* DO NOT override margins, alignment, or spacing */
                 }}
                 
-                /* Name header - 16pt Calibri */
+                /* Only Donald Gardner gets 16pt */
                 .name-header {{
-                    text-align: center !important;
                     font-size: 16pt !important;
+                    font-family: Calibri, 'Segoe UI', Arial, sans-serif !important;
                     font-weight: bold !important;
                     color: #2c3e50 !important;
-                    margin-bottom: 15px !important;
-                    font-family: Calibri, 'Segoe UI', Arial, sans-serif !important;
+                    /* Keep original alignment from Word */
                 }}
                 
-                /* Any centered content gets small caps */
-                .centered-content {{
-                    text-align: center !important;
-                    font-variant: small-caps !important;
-                    letter-spacing: 1px !important;
-                    margin: 15px 0 !important;
-                    font-weight: 600 !important;
-                    color: #2c3e50 !important;
+                /* Preserve original spacing for lists */
+                ul, ol {{
+                    /* Don't override margins - use Word's spacing */
                 }}
                 
-                /* Override small caps for name (keep it normal caps) */
-                .name-header.centered-content {{
-                    font-variant: normal !important;
-                    letter-spacing: 2px !important;
+                li {{
+                    /* Don't override margins - use Word's spacing */
                 }}
                 
                 strong {{
                     color: #2c3e50;
                     font-weight: 600;
-                }}
-                
-                ul {{
-                    margin-left: 25px;
-                    margin-bottom: 15px;
-                }}
-                
-                li {{
-                    margin-bottom: 4px;
-                    line-height: 1.4;
                 }}
                 
                 a {{
@@ -153,11 +120,8 @@ jobs:
         with open("index.html", "w", encoding="utf-8") as f:
             f.write(final_html)
         
-        print("✅ Smart styling applied:")
-        print("  - Auto-detected centered content")
-        print("  - Donald Gardner: 16pt Calibri")
-        print("  - Everything else: 11pt Calibri")
-        print("  - All centered lines: small caps")
+        print("✅ Formatting preserved from Word document")
+        print("✅ Only fonts changed: Donald Gardner 16pt, everything else 11pt Calibri")
         EOF
         
     - name: Upload to S3 and Invalidate CloudFront
