@@ -16,84 +16,79 @@ jobs:
         python-version: '3.x'
         
     - name: Install dependencies
-      run: pip install mammoth boto3
+      run: pip install python-docx lxml boto3
         
-    - name: Convert docx to HTML with CSS
+    - name: Convert docx to HTML using Word format
       run: |
         python3 << 'EOF'
-        import mammoth
+        from docx import Document
+        import xml.etree.ElementTree as ET
         
-        # Convert docx to HTML
-        with open("resume.docx", "rb") as docx_file:
-            result = mammoth.convert_to_html(docx_file)
-            content = result.value
+        # Load the document
+        doc = Document("resume.docx")
         
-        # Debug: Print first part of content
-        print("=== HTML Content Preview ===")
-        print(content[:300])
+        # Extract text and create HTML with Word-like structure
+        html_content = ""
+        for paragraph in doc.paragraphs:
+            text = paragraph.text.strip()
+            if text:
+                if any(header in text for header in ["Donald Gardner", "Key Accomplishments", "Professional Experience", "Education & Training", "Certifications", "Community Involvement"]):
+                    html_content += f'<p class="MsoNormal" style="text-align:center"><strong>{text}</strong></p>\n'
+                else:
+                    html_content += f'<p class="MsoNormal">{text}</p>\n'
         
-        # Enhanced HTML with stronger CSS
-        html = f'''<!DOCTYPE html>
-        <html lang="en">
+        # Create full HTML with your working CSS
+        full_html = f'''<html>
         <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Donald Gardner - Resume</title>
-            <style>
-                * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-                body {{ 
-                    font-family: Arial, sans-serif !important; 
-                    max-width: 800px !important; 
-                    margin: 20px auto !important; 
-                    padding: 30px !important; 
-                    line-height: 1.6 !important; 
-                    color: #333 !important;
-                    background-color: white !important;
-                }}
-                h1 {{ 
-                    text-align: center !important; 
-                    color: #2c3e50 !important; 
-                    font-size: 2.5em !important; 
-                    margin-bottom: 15px !important;
-                    font-weight: bold !important;
-                }}
-                h2 {{ 
-                    text-align: center !important; 
-                    color: #2c3e50 !important; 
-                    border-bottom: 3px solid #3498db !important; 
-                    padding-bottom: 8px !important; 
-                    margin-top: 35px !important;
-                    margin-bottom: 20px !important;
-                    font-size: 1.8em !important;
-                }}
-                p {{ 
-                    margin-bottom: 15px !important; 
-                    font-size: 16px !important;
-                }}
-                p:nth-of-type(1) {{ 
-                    text-align: center !important; 
-                    font-size: 1.2em !important; 
-                    margin-bottom: 35px !important;
-                    color: #555 !important;
-                }}
-                ul {{ margin-left: 25px !important; margin-bottom: 15px !important; }}
-                li {{ margin-bottom: 8px !important; }}
-                strong {{ color: #2c3e50 !important; font-weight: 600 !important; }}
-                a {{ color: #3498db !important; text-decoration: none !important; }}
-                a:hover {{ text-decoration: underline !important; }}
-            </style>
+        <meta http-equiv=Content-Type content="text/html; charset=windows-1252">
+        <style>
+        p.MsoNormal, li.MsoNormal, div.MsoNormal {{
+            margin:0in;
+            font-size:11.0pt;
+            font-family:"Calibri",sans-serif;
+        }}
+        
+        body {{
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px;
+            background: #f8f9fa;
+            color: #333;
+        }}
+        
+        h1, h2 {{
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+            text-align: center;
+        }}
+        
+        .resume-container {{
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }}
+        
+        p[style*="text-align:center"] {{
+            text-align: center !important;
+            margin: 15px 0;
+        }}
+        </style>
         </head>
-        <body>
-            {content}
+        
+        <body bgcolor=white lang=EN-US style='word-wrap: break-word'>
+        <div class="resume-container">
+        {html_content}
+        </div>
         </body>
         </html>'''
         
         with open("index.html", "w", encoding="utf-8") as f:
-            f.write(html)
+            f.write(full_html)
         
-        # Debug: Print final HTML length
-        print(f"=== Final HTML Length: {len(html)} characters ===")
-        print("✅ HTML created with enhanced CSS styling")
+        print("✅ HTML created with Word-compatible CSS")
         EOF
         
     - name: Upload to S3 and Invalidate CloudFront
