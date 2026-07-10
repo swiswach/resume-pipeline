@@ -16,153 +16,75 @@ jobs:
         python-version: '3.x'
         
     - name: Install dependencies
-      run: |
-        pip install python-docx mammoth beautifulsoup4 boto3
+      run: pip install mammoth boto3
         
-    - name: Convert docx to HTML
+    - name: Convert docx to HTML with CSS
       run: |
         python3 << 'EOF'
         import mammoth
-        from bs4 import BeautifulSoup
         
+        # Convert docx to HTML
         with open("resume.docx", "rb") as docx_file:
             result = mammoth.convert_to_html(docx_file)
-            html_content = result.value
-            
-        # Parse and modify HTML to add classes for centering
-        soup = BeautifulSoup(html_content, 'html.parser')
+            content = result.value
         
-        # Find and mark elements that should be centered
-        center_items = ["Donald Gardner", "Key Accomplishments", "Professional Experience", 
-                       "Education & Training", "Certifications", "Community Involvement"]
-        
-        for element in soup.find_all(['h1', 'h2', 'h3', 'p']):
-            text = element.get_text().strip()
-            if any(item in text for item in center_items):
-                element['class'] = element.get('class', []) + ['center']
-            # Check if it's the contact line (contains phone or email)
-            if '(425)' in text or 'Donald.gardner4321@gmail.com' in text:
-                element['class'] = element.get('class', []) + ['center', 'contact']
-        
-        # Enhanced CSS styling
-        full_html = f"""<!DOCTYPE html>
+        # Simple HTML with clean CSS
+        html = f'''<!DOCTYPE html>
         <html lang="en">
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Donald Gardner - Resume</title>
             <style>
-                body {{ 
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                    max-width: 800px; 
-                    margin: 0 auto; 
-                    padding: 40px 20px;
-                    line-height: 1.6;
-                    color: #333;
-                    background-color: #fff;
-                }}
-                
-                /* Center specific elements */
-                .center {{
-                    text-align: center !important;
-                }}
-                
-                /* Name styling */
-                h1, h1.center {{
-                    color: #2c3e50; 
-                    font-size: 2.5em;
-                    margin-bottom: 10px;
-                    text-align: center !important;
-                    font-weight: bold;
-                }}
-                
-                /* Contact info styling */
-                .contact {{
-                    text-align: center !important;
-                    margin-bottom: 30px;
-                    font-size: 1.1em;
-                    color: #555;
-                }}
-                
-                /* Section headers */
-                h2, h2.center {{
-                    color: #2c3e50;
-                    font-size: 1.8em;
-                    margin-top: 35px;
-                    margin-bottom: 20px;
-                    text-align: center !important;
-                    border-bottom: 2px solid #3498db;
-                    padding-bottom: 8px;
-                    font-weight: bold;
-                }}
-                
-                h3 {{ 
-                    color: #34495e; 
-                    margin-top: 25px;
-                    margin-bottom: 10px;
-                    font-size: 1.3em;
-                }}
-                
-                p {{ 
-                    margin-bottom: 15px; 
-                    font-size: 16px;
-                    text-align: justify;
-                }}
-                
-                ul {{ 
-                    margin-left: 25px; 
-                    margin-bottom: 20px;
-                }}
-                
-                li {{ 
-                    margin-bottom: 8px; 
-                    line-height: 1.5;
-                }}
-                
-                strong {{ 
-                    color: #2c3e50; 
-                    font-weight: 600;
-                }}
-                
-                /* Links */
-                a {{
-                    color: #3498db;
-                    text-decoration: none;
-                }}
-                
-                a:hover {{
-                    text-decoration: underline;
-                }}
+                body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; line-height: 1.6; color: #333; }}
+                h1 {{ text-align: center; color: #2c3e50; font-size: 2.2em; margin-bottom: 10px; }}
+                h2 {{ text-align: center; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; margin-top: 30px; }}
+                p:first-of-type {{ text-align: center; font-size: 1.1em; margin-bottom: 30px; }}
+                p {{ margin-bottom: 12px; }}
+                ul {{ margin-left: 20px; }}
+                li {{ margin-bottom: 6px; }}
+                strong {{ color: #2c3e50; }}
+                a {{ color: #3498db; text-decoration: none; }}
+                a:hover {{ text-decoration: underline; }}
             </style>
         </head>
         <body>
-            {str(soup)}
+            {content}
         </body>
-        </html>"""
+        </html>'''
         
         with open("index.html", "w", encoding="utf-8") as f:
-            f.write(full_html)
-            
-        print("✅ Conversion completed with professional styling and centering")
+            f.write(html)
+        print("✅ HTML created with CSS styling")
         EOF
         
-    - name: Upload to S3
+    - name: Upload to S3 and Invalidate CloudFront
       run: |
         python3 << 'EOF'
         import boto3
+        import time
         
+        # Upload to S3
         s3 = boto3.client('s3')
-        
         with open('index.html', 'r', encoding='utf-8') as f:
-            content = f.read()
-            
-        s3.put_object(
-            Bucket='${{ secrets.S3_BUCKET }}',
-            Key='index.html',
-            Body=content,
-            ContentType='text/html'
+            s3.put_object(
+                Bucket='cloud-challenge01',
+                Key='index.html',
+                Body=f.read(),
+                ContentType='text/html'
+            )
+        print("✅ Uploaded to S3")
+        
+        # Invalidate CloudFront
+        cloudfront = boto3.client('cloudfront')
+        cloudfront.create_invalidation(
+            DistributionId='E1D217O0NBRUC2',
+            InvalidationBatch={
+                'Paths': {'Quantity': 1, 'Items': ['/*']},
+                'CallerReference': f'auto-{int(time.time())}'
+            }
         )
-        print("✅ Uploaded to S3 successfully")
+        print("✅ CloudFront invalidated")
         EOF
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
