@@ -28,7 +28,11 @@ jobs:
             result = mammoth.convert_to_html(docx_file)
             content = result.value
         
-        # Simple HTML with clean CSS
+        # Debug: Print first part of content
+        print("=== HTML Content Preview ===")
+        print(content[:300])
+        
+        # Enhanced HTML with stronger CSS
         html = f'''<!DOCTYPE html>
         <html lang="en">
         <head>
@@ -36,16 +40,47 @@ jobs:
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Donald Gardner - Resume</title>
             <style>
-                body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; line-height: 1.6; color: #333; }}
-                h1 {{ text-align: center; color: #2c3e50; font-size: 2.2em; margin-bottom: 10px; }}
-                h2 {{ text-align: center; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; margin-top: 30px; }}
-                p:first-of-type {{ text-align: center; font-size: 1.1em; margin-bottom: 30px; }}
-                p {{ margin-bottom: 12px; }}
-                ul {{ margin-left: 20px; }}
-                li {{ margin-bottom: 6px; }}
-                strong {{ color: #2c3e50; }}
-                a {{ color: #3498db; text-decoration: none; }}
-                a:hover {{ text-decoration: underline; }}
+                * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+                body {{ 
+                    font-family: Arial, sans-serif !important; 
+                    max-width: 800px !important; 
+                    margin: 20px auto !important; 
+                    padding: 30px !important; 
+                    line-height: 1.6 !important; 
+                    color: #333 !important;
+                    background-color: white !important;
+                }}
+                h1 {{ 
+                    text-align: center !important; 
+                    color: #2c3e50 !important; 
+                    font-size: 2.5em !important; 
+                    margin-bottom: 15px !important;
+                    font-weight: bold !important;
+                }}
+                h2 {{ 
+                    text-align: center !important; 
+                    color: #2c3e50 !important; 
+                    border-bottom: 3px solid #3498db !important; 
+                    padding-bottom: 8px !important; 
+                    margin-top: 35px !important;
+                    margin-bottom: 20px !important;
+                    font-size: 1.8em !important;
+                }}
+                p {{ 
+                    margin-bottom: 15px !important; 
+                    font-size: 16px !important;
+                }}
+                p:nth-of-type(1) {{ 
+                    text-align: center !important; 
+                    font-size: 1.2em !important; 
+                    margin-bottom: 35px !important;
+                    color: #555 !important;
+                }}
+                ul {{ margin-left: 25px !important; margin-bottom: 15px !important; }}
+                li {{ margin-bottom: 8px !important; }}
+                strong {{ color: #2c3e50 !important; font-weight: 600 !important; }}
+                a {{ color: #3498db !important; text-decoration: none !important; }}
+                a:hover {{ text-decoration: underline !important; }}
             </style>
         </head>
         <body>
@@ -55,7 +90,10 @@ jobs:
         
         with open("index.html", "w", encoding="utf-8") as f:
             f.write(html)
-        print("✅ HTML created with CSS styling")
+        
+        # Debug: Print final HTML length
+        print(f"=== Final HTML Length: {len(html)} characters ===")
+        print("✅ HTML created with enhanced CSS styling")
         EOF
         
     - name: Upload to S3 and Invalidate CloudFront
