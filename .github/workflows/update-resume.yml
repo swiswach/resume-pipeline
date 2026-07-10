@@ -66,3 +66,115 @@ jobs:
                 .resume-container {{
                     background: white;
                     padding: 40px;
+                    border-radius: 12px;
+                    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+                    border: 1px solid #e9ecef;
+                }}
+                
+                .name {{
+                    text-align: center;
+                    color: #2c3e50;
+                    font-size: 2.5em;
+                    margin-bottom: 15px;
+                    font-weight: 700;
+                    letter-spacing: 1px;
+                }}
+                
+                .contact-info {{
+                    text-align: center;
+                    font-size: 1.1em;
+                    color: #555;
+                    margin-bottom: 35px;
+                    font-weight: 500;
+                }}
+                
+                .section-header {{
+                    text-align: center;
+                    color: #2c3e50;
+                    font-size: 1.8em;
+                    margin-top: 40px;
+                    margin-bottom: 25px;
+                    padding-bottom: 10px;
+                    border-bottom: 3px solid #3498db;
+                    font-weight: 600;
+                }}
+                
+                .content {{
+                    margin-bottom: 15px;
+                    font-size: 16px;
+                    text-align: justify;
+                    color: #444;
+                }}
+                
+                h1, h2, h3 {{
+                    color: #2c3e50;
+                }}
+                
+                strong {{
+                    color: #2c3e50;
+                    font-weight: 600;
+                }}
+                
+                a {{
+                    color: #3498db;
+                    text-decoration: none;
+                }}
+                
+                a:hover {{
+                    text-decoration: underline;
+                }}
+                
+                ul {{
+                    margin-left: 25px;
+                    margin-bottom: 20px;
+                }}
+                
+                li {{
+                    margin-bottom: 8px;
+                    line-height: 1.5;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="resume-container">
+                {"".join(html_parts)}
+            </div>
+        </body>
+        </html>'''
+        
+        with open("index.html", "w", encoding="utf-8") as f:
+            f.write(html)
+        
+        print("✅ Professional HTML created with full styling")
+        EOF
+        
+    - name: Upload to S3 and Invalidate CloudFront
+      run: |
+        python3 << 'EOF'
+        import boto3
+        import time
+        
+        s3 = boto3.client('s3')
+        with open('index.html', 'r', encoding='utf-8') as f:
+            s3.put_object(
+                Bucket='cloud-challenge01',
+                Key='index.html',
+                Body=f.read(),
+                ContentType='text/html'
+            )
+        print("✅ Uploaded to S3")
+        
+        cloudfront = boto3.client('cloudfront')
+        cloudfront.create_invalidation(
+            DistributionId='E1D217O0NBRUC2',
+            InvalidationBatch={
+                'Paths': {'Quantity': 1, 'Items': ['/*']},
+                'CallerReference': f'auto-{int(time.time())}'
+            }
+        )
+        print("✅ CloudFront invalidated")
+        EOF
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: us-east-1
