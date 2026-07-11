@@ -18,7 +18,7 @@ jobs:
     - name: Install dependencies
       run: pip install python-docx boto3
         
-    - name: Convert with python-docx (Direct Formatting Access)
+    - name: Convert with python-docx (Including Bullets)
       run: |
         python3 << 'EOF'
         from docx import Document
@@ -29,57 +29,85 @@ jobs:
         doc = Document('resume.docx')
         
         html_content = []
+        current_list = None
+        list_level = None
         
-        print("=== python-docx Direct Formatting Read ===")
+        print("=== python-docx with Bullet Support ===")
+        
+        def close_current_list():
+            nonlocal current_list, html_content
+            if current_list:
+                html_content.append('</ul>')
+                current_list = None
         
         for paragraph in doc.paragraphs:
             text = paragraph.text.strip()
             if not text:  # Skip empty paragraphs
                 continue
+            
+            # Check if this is a list item
+            is_list_item = False
+            if paragraph._element.pPr is not None:
+                numPr = paragraph._element.pPr.numPr
+                if numPr is not None:
+                    is_list_item = True
+                    print(f"BULLET ITEM: '{text}'")
+            
+            if is_list_item:
+                # Start new list if needed
+                if not current_list:
+                    html_content.append('<ul>')
+                    current_list = 'ul'
                 
-            # Read actual Word formatting
-            alignment = paragraph.alignment
-            
-            # Determine CSS classes based on actual Word formatting
-            css_classes = []
-            
-            # Check alignment from Word
-            if alignment == WD_ALIGN_PARAGRAPH.CENTER:
-                css_classes.append('centered-content')
-                print(f"CENTERED (from Word): '{text}'")
-            elif alignment == WD_ALIGN_PARAGRAPH.RIGHT:
-                css_classes.append('right-aligned')
-                print(f"RIGHT (from Word): '{text}'")
+                # Add list item
+                html_content.append(f'<li>{text}</li>')
+                
             else:
-                print(f"LEFT (from Word): '{text[:50]}...'")
-            
-            # Special handling for name
-            if "Donald Gardner" in text:
-                css_classes.append('name-header')
-                print(f"NAME HEADER: '{text}'")
-            
-            # Check font formatting from runs
-            is_bold = False
-            font_size = None
-            if paragraph.runs:
-                # Check if any run is bold
-                is_bold = any(run.font.bold for run in paragraph.runs if run.font.bold)
-                # Get font size from first run
-                if paragraph.runs[0].font.size:
-                    font_size = paragraph.runs[0].font.size.pt
-            
-            if is_bold:
-                css_classes.append('bold-text')
-                print(f"BOLD: '{text[:30]}...'")
-            
-            # Build HTML paragraph
-            class_attr = f' class="{" ".join(css_classes)}"' if css_classes else ''
-            html_content.append(f'<p{class_attr}>{text}</p>')
+                # Close any open list
+                close_current_list()
+                
+                # Read actual Word formatting for regular paragraphs
+                alignment = paragraph.alignment
+                
+                # Determine CSS classes based on actual Word formatting
+                css_classes = []
+                
+                # Check alignment from Word
+                if alignment == WD_ALIGN_PARAGRAPH.CENTER:
+                    css_classes.append('centered-content')
+                    print(f"CENTERED (from Word): '{text}'")
+                elif alignment == WD_ALIGN_PARAGRAPH.RIGHT:
+                    css_classes.append('right-aligned')
+                    print(f"RIGHT (from Word): '{text}'")
+                else:
+                    print(f"LEFT (from Word): '{text[:50]}...'")
+                
+                # Special handling for name
+                if "Donald Gardner" in text:
+                    css_classes.append('name-header')
+                    print(f"NAME HEADER: '{text}'")
+                
+                # Check font formatting from runs
+                is_bold = False
+                if paragraph.runs:
+                    # Check if any run is bold
+                    is_bold = any(run.font.bold for run in paragraph.runs if run.font.bold)
+                
+                if is_bold:
+                    css_classes.append('bold-text')
+                    print(f"BOLD: '{text[:30]}...'")
+                
+                # Build HTML paragraph
+                class_attr = f' class="{" ".join(css_classes)}"' if css_classes else ''
+                html_content.append(f'<p{class_attr}>{text}</p>')
         
-        # Join all paragraphs
+        # Close any remaining list
+        close_current_list()
+        
+        # Join all content
         body_html = '\n'.join(html_content)
         
-        # Create final HTML with comprehensive CSS
+        # Create final HTML with comprehensive CSS including list styling
         final_html = f'''<!DOCTYPE html>
         <html lang="en">
         <head>
@@ -137,6 +165,19 @@ jobs:
                     color: #2c3e50 !important;
                 }}
                 
+                /* List styling to match Word */
+                ul {{
+                    margin: 5px 0 10px 25px;
+                    padding: 0;
+                }}
+                
+                li {{
+                    font-size: 11pt;
+                    font-family: Calibri, 'Segoe UI', Arial, sans-serif;
+                    margin: 0 0 2px 0;
+                    line-height: 1.2;
+                }}
+                
                 /* Links */
                 a {{
                     color: #3498db;
@@ -158,7 +199,7 @@ jobs:
         with open("index.html", "w", encoding="utf-8") as f:
             f.write(final_html)
         
-        print("✅ python-docx conversion complete - reading actual Word formatting!")
+        print("✅ python-docx conversion complete - with bullets and formatting!")
         EOF
         
     - name: Upload to S3 and Invalidate CloudFront
