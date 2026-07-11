@@ -18,7 +18,7 @@ jobs:
     - name: Install dependencies
       run: pip install python-docx boto3
         
-    - name: Convert with Enhanced Bullet Detection
+    - name: Convert with Fixed Bullet Detection
       run: |
         python3 << 'EOF'
         from docx import Document
@@ -31,10 +31,10 @@ jobs:
         html_content = []
         current_list = None
         
-        print("=== Enhanced Bullet Detection Debug ===")
+        print("=== Fixed Bullet Detection Debug ===")
         
         def close_current_list():
-            nonlocal current_list, html_content
+            global current_list, html_content
             if current_list:
                 html_content.append('</ul>')
                 current_list = None
@@ -240,7 +240,7 @@ jobs:
         with open("index.html", "w", encoding="utf-8") as f:
             f.write(final_html)
         
-        print("✅ Enhanced bullet detection + small caps complete!")
+        print("✅ Fixed syntax - bullet detection should work now!")
         EOF
         
     - name: Upload to S3 and Invalidate CloudFront
