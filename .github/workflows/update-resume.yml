@@ -18,55 +18,50 @@ jobs:
     - name: Install dependencies
       run: pip install mammoth boto3 beautifulsoup4
         
-    - name: Convert with Mammoth Style Mapping
+    - name: Convert with Fixed Mammoth Style Mapping
       run: |
         python3 << 'EOF'
         import mammoth
         from bs4 import BeautifulSoup
         
-        # Configure Mammoth to preserve alignment styles
+        # Simpler style mapping approach
         style_map = """
-        p[style-name='centered'] => p.centered-content
-        p[style-name='center'] => p.centered-content
-        p[style-name='Center'] => p.centered-content
-        p[style-name='Centered'] => p.centered-content
+        p:center => p.centered-content
         """
         
-        # Convert with style mapping to preserve alignment
+        # Convert with style mapping
         with open("resume.docx", "rb") as docx_file:
             result = mammoth.convert_to_html(
                 docx_file,
-                style_map=style_map,
-                transform_document=mammoth.transforms.paragraph(
-                    lambda paragraph: paragraph.alignment == "center",
-                    lambda paragraph: paragraph.with_style_name("centered")
-                )
+                style_map=style_map
             )
             raw_html = result.value
         
-        print("=== Mammoth with alignment preservation ===")
+        print("=== Fixed Mammoth conversion ===")
         print("Conversion messages:", result.messages)
-        print("HTML preview:")
-        print(raw_html[:500])
         
-        # Parse HTML
+        # Parse HTML and add content-based detection as backup
         soup = BeautifulSoup(raw_html, 'html.parser')
         
-        # Only identify Donald Gardner for special font size
         for p in soup.find_all('p'):
             text = p.get_text().strip()
-            if "Donald Gardner" in text:
-                p['class'] = p.get('class', []) + ['name-header']
-                print(f"Found name: {text}")
-            
-            # Check what classes Mammoth assigned
-            if p.get('class'):
-                print(f"Paragraph with classes {p.get('class')}: '{text[:50]}...'")
+            if text:
+                # Donald Gardner gets name header class
+                if "Donald Gardner" in text:
+                    p['class'] = p.get('class', []) + ['name-header']
+                
+                # Add professional title detection as backup
+                elif text == "Cyber Security Researcher":
+                    p['class'] = p.get('class', []) + ['centered-content']
+                    print(f"CENTERING (backup): {text}")
+                
+                # Check what Mammoth found
+                if 'centered-content' in p.get('class', []):
+                    print(f"CENTERED (Mammoth): {text}")
         
-        # Get modified HTML
         modified_html = str(soup)
         
-        # Create final HTML with alignment preserved
+        # Same gorgeous CSS as before
         final_html = f'''<!DOCTYPE html>
         <html lang="en">
         <head>
@@ -92,7 +87,6 @@ jobs:
                     border: 1px solid #ddd;
                 }}
                 
-                /* Default - 11pt Calibri, left aligned */
                 p, div, span {{
                     font-size: 11pt !important;
                     font-family: Calibri, 'Segoe UI', Arial, sans-serif !important;
@@ -100,7 +94,6 @@ jobs:
                     text-align: left !important;
                 }}
                 
-                /* Name header - 16pt */
                 .name-header {{
                     font-size: 16pt !important;
                     font-weight: bold !important;
@@ -108,23 +101,10 @@ jobs:
                     margin-bottom: 8px !important;
                 }}
                 
-                /* Centered content from Word alignment */
                 .centered-content {{
                     text-align: center !important;
-                    font-variant: small-caps !important;
-                    letter-spacing: 1px !important;
-                    font-weight: 600 !important;
-                    color: #2c3e50 !important;
-                    margin: 15px 0 !important;
                 }}
                 
-                /* Override small caps for name */
-                .name-header.centered-content {{
-                    font-variant: normal !important;
-                    letter-spacing: 2px !important;
-                }}
-                
-                /* Lists - single spaced */
                 ul, ol {{
                     margin: 5px 0 10px 25px !important;
                     padding: 0 !important;
@@ -162,7 +142,7 @@ jobs:
         with open("index.html", "w", encoding="utf-8") as f:
             f.write(final_html)
         
-        print("✅ Mammoth style mapping applied - alignment preserved from Word")
+        print("✅ Fixed syntax - should work now!")
         EOF
         
     - name: Upload to S3 and Invalidate CloudFront
