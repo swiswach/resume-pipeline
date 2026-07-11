@@ -18,7 +18,7 @@ jobs:
     - name: Install dependencies
       run: pip install python-docx boto3
         
-    - name: Convert with Fixed Bullet Detection
+    - name: Convert with Precise Bullet Detection
       run: |
         python3 << 'EOF'
         from docx import Document
@@ -31,7 +31,7 @@ jobs:
         html_content = []
         current_list = None
         
-        print("=== Fixed Bullet Detection Debug ===")
+        print("=== Precise Bullet Detection ===")
         
         def close_current_list():
             global current_list, html_content
@@ -46,35 +46,28 @@ jobs:
             
             print(f"\nParagraph {i}: '{text[:60]}...'")
             
-            # Multiple methods to detect bullets
+            # More precise bullet detection - only use reliable methods
             is_list_item = False
             
-            # Method 1: Check numPr (numbering properties)
+            # Method 1: Check numPr (numbering properties) - MOST RELIABLE
             if paragraph._element.pPr is not None:
                 numPr = paragraph._element.pPr.numPr
                 if numPr is not None:
                     is_list_item = True
                     print(f"  → BULLET (numPr): '{text}'")
             
-            # Method 2: Check paragraph style
-            if paragraph.style.name.startswith('List'):
+            # Method 2: Check paragraph style - RELIABLE
+            elif paragraph.style.name.startswith('List'):
                 is_list_item = True
                 print(f"  → BULLET (style): '{text}' (style: {paragraph.style.name})")
             
-            # Method 3: Check for bullet characters at start
-            if text.startswith('•') or text.startswith('-') or text.startswith('*'):
+            # Method 3: Check for actual bullet characters - RELIABLE
+            elif text.startswith('•') or text.startswith('◦') or text.startswith('▪'):
                 is_list_item = True
                 text = text[1:].strip()  # Remove bullet character
                 print(f"  → BULLET (character): '{text}'")
             
-            # Method 4: Check indentation (common for bullets)
-            if hasattr(paragraph.paragraph_format, 'left_indent') and paragraph.paragraph_format.left_indent:
-                if paragraph.paragraph_format.left_indent.pt > 0:
-                    print(f"  → INDENTED: {paragraph.paragraph_format.left_indent.pt}pt")
-                    # If indented and short line, likely a bullet
-                    if len(text.split()) < 15:  # Short lines are often bullets
-                        is_list_item = True
-                        print(f"  → BULLET (indent+short): '{text}'")
+            # REMOVED Method 4 (indentation) - it was too aggressive
             
             print(f"  → Style: {paragraph.style.name}")
             print(f"  → Is list item: {is_list_item}")
@@ -240,7 +233,7 @@ jobs:
         with open("index.html", "w", encoding="utf-8") as f:
             f.write(final_html)
         
-        print("✅ Fixed syntax - bullet detection should work now!")
+        print("✅ Precise bullet detection - removed aggressive indentation check!")
         EOF
         
     - name: Upload to S3 and Invalidate CloudFront
